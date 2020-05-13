@@ -9,7 +9,7 @@ Use data from countries that have covid contained (Have data for south Korea - u
 
 Use just CO data or specialize in specific region of US?
 
-Use this on cases as opposed to new cases?
+#Need to replace first data point for each state with 0
 
 '''
 import pandas as pd
@@ -105,84 +105,100 @@ def clean_data(df, datetime_col = None):
         clean_df[datetime_col] = pd.to_datetime(clean_df[datetime_col])
     return clean_df
 
+def replace_initial_values(df, col_change, val_col):
+    '''
+    When creating new feature columns using difference of existing columns, this function will replace the initial value in val_col of col_change with a 0.
+    '''
+    prev = None
+    for i, st in zip(df.index, df[col_change]):
+        if st != prev:
+            df.loc[i, val_col] = 0
+        else:
+            continue
+        prev = st
+    return df
+
 def load_and_clean_data():
     '''
     Sets up and generates dataframe for analysis
     '''
 
     #Import and clean covid data (Cases in 2020)
-    covid_raw_df = pd.read_csv('data/covid-19-data/us.csv')
+    covid_raw_df = pd.read_csv('data/covid-19-data/us-states.csv')
     covid_df = clean_data(covid_raw_df, datetime_col='date')
+    covid_df.sort_values(['state', 'date'], inplace = True)
     covid_df['New_Cases'] = covid_df['cases'].diff()
 
-    # To get daily death and ratio:
-    # covid_df = calc_row_diff(covid_df, colname='deaths',
-    #                          added_colname='daily_death')
-    # covid_df['death/case_ratio'] = covid_df['daily_death'] / \
-    #     covid_df['New_Cases']
-    # covid_df['death/case_ratio'] = covid_df['death/case_ratio'].fillna(0)
-
-    #Begin loading features that may have something to do with the fluctuation of the virus
-
+    covid_df = replace_initial_values(covid_df, 'state', 'New_Cases')
     '''
     Mobility Data - From Google
     #The baseline is the median value, for the corresponding day of the week, during the 5-week period Jan 3–Feb 6, 2020
     https://www.google.com/covid19/mobility/index.html?hl=en
     '''
-
+    
     mobility_raw_df = pd.read_csv(
         'data/Global_Mobility_Report.csv', low_memory=False)
-    mobility_raw_df.fillna('None', inplace=True)
     US_mobility_raw_df = mobility_raw_df[(mobility_raw_df['country_region'] == 'United States') & (
-        mobility_raw_df['sub_region_1'] == 'None')]
+        mobility_raw_df['sub_region_1'].isnull() == False) & (mobility_raw_df['sub_region_2'].isnull() == True)]
     mobility_df = clean_data(US_mobility_raw_df, datetime_col='date')
     mobility_df.reset_index(inplace=True)
     mobility_df.drop(['index', 'country_region_code',
-                      'country_region', 'sub_region_1', 'sub_region_2'], axis=1, inplace=True)
+                      'country_region', 'sub_region_2'], axis=1, inplace=True)
     mobility_df.rename(columns=lambda x: x.replace(
         '_percent_change_from_baseline', ''), inplace=True)
+    mobility_df.rename(columns = {'sub_region_1' : 'state'},inplace = True)
     num_cols = ['retail_and_recreation', 'grocery_and_pharmacy',
                 'parks', 'transit_stations', 'workplaces', 'residential']
     mobility_df[num_cols] = mobility_df[num_cols].apply(pd.to_numeric)
 
     #Convert to percent of normal
-    mobility_df.iloc[:, 1:] = mobility_df.iloc[:,
-                                               1:].apply(lambda x: (x + 100)/100)
-
+    mobility_df[num_cols] = mobility_df[num_cols].apply(lambda x: (x + 100)/100)
+    states = list(set(mobility_df['state']))
     '''
     Transp data - From Apple
     The CSV file and charts on this site show a relative volume of directions requests per country/region, sub-region or city compared to a baseline volume on January 13th, 2020. We define our day as midnight-to-midnight, Pacific time.
     https://www.apple.com/covid19/mobility 
     '''
     transp_raw_df = pd.read_csv('data/applemobilitytrends-2020-05-09.csv')
-    transp_df = transp_raw_df[(
-        transp_raw_df['region'] == 'United States')].copy()
-    transp_df.drop(['geo_type', 'region', 'alternative_name'],
+    transp_df = transp_raw_df[(transp_raw_df['geo_type'] == 'sub-region') & (transp_raw_df['region'].isin(states))].copy()
+    #Driving is only available transportation type data available for statewide data
+    transp_df.drop(['geo_type', 'alternative_name', 'transportation_type'],
                    axis=1, inplace=True)
-    transp_df.set_index('transportation_type', inplace=True)
+    transp_df.set_index('region', inplace=True)
     transp_df = (transp_df.T) / 100  # Convert to percentage of normal
-    transp_df.columns = ['driving', 'transit', 'walking']
     transp_df.reset_index(inplace=True)
     transp_df.rename(columns={'index': 'date'}, inplace=True)
     transp_df['date'] = pd.to_datetime(transp_df['date'])
+    transp_df = transp_df.melt(id_vars=["date"])
+    transp_df.rename(columns={'region': 'state'}, inplace = True)
 
-    mobility_df = mobility_df.merge(transp_df, how='inner', on='date')
-    covid_df = mobility_df.merge(covid_df, how='inner', on='date')
-    covid_df.drop(['cases', 'deaths'], axis=1, inplace=True)
+    mobility_df = mobility_df.merge(transp_df, how='inner', on=['date', 'state'])
+    covid_df = mobility_df.merge(covid_df, how='inner', on=['date', 'state'])
+    covid_df.rename(columns={'value': 'driving'}, inplace=True)
+    covid_df.drop(['cases', 'deaths', 'fips'], axis=1, inplace=True)
     
     #Converts date into days elapsed since outbreak- some functions don't work with datetime objects
+    #February 15th is earliest data
+    min_date = datetime.datetime(2020, 2, 15)
+    covid_df['date'] = covid_df['date'].apply(
+        lambda x: (x.to_pydatetime() - min_date).days)
     dates = covid_df['date']
-    covid_df['date'] = covid_df.index
     covid_df.rename(columns={'date': 'days_elapsed'}, inplace=True)
     return covid_df
 
+def state_plot(state, df=covid_df):
+    fig, axes = plt.subplots(8, 1, figsize=(12, 15))
+    for i, ax in enumerate(axes, 2):
+        query = df[df['state'] == state]['days_elapsed']
+        x = query.values
+        y = covid_df.loc[query.index].iloc[:, i]
+        ax.plot(x, y)
+    fig.show()
+
 if __name__ == '__main__':
     covid_df = load_and_clean_data()
-    y = covid_df.pop('New_Cases')
-    X = covid_df
-    # ridge_model = reg_model(X, y)
-    # ridge_model.ridge_reg()
-    # ridge_model.evaluate_model()
-    rf_model = reg_model(X, y, log_trans_y = True)
-    rf_model.rand_forest(n_trees = 'optimize')
-    rf_model.evaluate_model()
+    # y = covid_df.pop('New_Cases')
+    # X = covid_df
+    # rf_model = reg_model(X, y, log_trans_y = True)
+    # rf_model.rand_forest(n_trees = 'optimize')
+    # rf_model.evaluate_model()
