@@ -2,7 +2,7 @@
 <img src="images/covid19_economy_jpg.jpeg" width="500">
 <p>
 
-#Capston-2
+#Capstone-2
 End goal - estimate Covid 19 under control, things go back to normal
 Question: Based on previous recessions in US history and/or containment time from affected countries, when will the United States recover from the economic hardships brought on by the pandemic? I will be using the unemployment rate as an indicator of economic health.
 
@@ -15,10 +15,6 @@ MVP+:
 
 MVP ++:​ Use web-scraping and NLP to analyze the type of words being used in recent economic news (ratio of words such as "lockdown", "quarantine", "extended" to words like "protest", "end", "open") to determine a scaling factor between best and worst cases for part 1 model
 
-Monday:
-Clarify Kayla / Frank direction: Hybrid model, linear, exponential with y transform, linear, then random forest
-
-Tuesday:
 
 Wednesday:
 
@@ -31,3 +27,7 @@ Sources:
 Header image : https://spectrumlocalnews.com/nc/triangle-sandhills/tying-it-together-with-tim-boyum/2020/04/28/tying-it-together-with-tim-boyum-checking-the-pulse-on-nc-s-economic-health-during-the-coronavirus-crisis
 
 https://github.com/nytimes/covid-19-data/blob/master/us-states.csv 
+
+https://worldpopulationreview.com/states/
+
+https://worldpopulationreview.com/states/states-by-area/
