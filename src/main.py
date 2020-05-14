@@ -16,9 +16,6 @@ Trim data so that the signal is not misled by earlier observations?
 Bring in data from travel from other countries - maybe that would help?
 https://travel.trade.gov/view/m-2017-I-001/index.asp
 
-Change days elapsed to unique to each individual state or from earliest date with data?
-
-
 '''
 import pandas as pd
 import datetime
@@ -40,9 +37,17 @@ matplotlib.rcParams.update({'font.size': 16})
 plt.style.use('fivethirtyeight')
 plt.close('all')
 
+#Define minimum threshold of cases per 1 million people in each state to begin training data on.
+#Threshold is the minimum value at which data is output; Used to reduce misleading predictions
+#(low new cases count and low social distancing parameters before pandemic)
+
+threshold = 100
+
+def override_threshold(new):
+    threshold = new
 
 class reg_model(object):
-    def __init__(self, X, y, log_trans_y=False):
+    def __init__(self, X, y, log_trans_y=False, day_cutoff = 70):
         self.X = X
         if log_trans_y == True:
             elim_invalid = y.copy()
@@ -50,8 +55,10 @@ class reg_model(object):
             self.y = np.log(elim_invalid + 1)
         else:
             self.y = y
+        train_mask = self.X['days_elapsed'] < day_cutoff
+        holdout_mask = self.X['days_elapsed'] >= day_cutoff
         self.log_trans_y = log_trans_y
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size = 0.5) # This doesn't work for forecasting
+        self.X_train, self.X_test, self.y_train, self.y_test = self.X[train_mask], self.X[holdout_mask], self.y[train_mask], self.y[holdout_mask]
         self.error_metric = None
 
     def lin_reg(self):
@@ -107,24 +114,33 @@ class reg_model(object):
         self.forecasted = self.model.predict(to_forecast_df)
         return self.forecasted
 
-    def plot_model(self, use_smoothed = True):
+    def plot_model(self, use_smoothed=True, threshold=threshold, save_name = None):
+        '''
+        Use smoothed generates data using moving average. 
+        
+        '''
         fig, ax = plt.subplots(figsize=(10, 6))
         if self.log_trans_y == True:
-            self.y_test = np.e ** self.predicted_vals_df['New_Cases_per_pop']
-            self.y_hat = np.e ** self.predicted_vals_df['y_hat']
-        ax.bar(self.predicted_vals_df.loc[:, 'days_elapsed'], self.y_test, color = 'blue', label="Test Data")
-        ax.bar(self.X_train.loc[:, 'days_elapsed'], np.e ** self.y_train, color = 'red', label="Training Data")
+            self.y_test = np.e ** self.y_test
+        ax.bar(self.X_test.loc[:, 'days_elapsed'],
+                self.y_test, color='blue', label="Test Data")
+        ax.bar(self.X_train.loc[:, 'days_elapsed'], np.e **
+                self.y_train, color='red', label="Training Data")
         if use_smoothed == True:
-            x, y = create_spline(self.predicted_vals_df.loc[:, 'days_elapsed'], self.y_hat)
-            ax.plot(x, y, c = 'green', label='Predicted Data')
+            x, y = create_spline(self.X['days_elapsed'], self.y)
+            ax.plot(x, np.e**y, c='green', label='Moving Average - 7 days')
         else:
-            ax.plot(self.predicted_vals_df.loc[:, 'days_elapsed'], self.y_hat, c='green', label='Predicted Data')
-        
+            ax.plot(self.X_test.loc[:, 'days_elapsed'],
+                    self.y_test, c='green', label='Predicted Data')
+        x_thresh = x[np.where(np.e**y >= threshold)[0][0]]
+        ax.axvline(x_thresh, label='Threshold', color='black', ls='--')
         ax.legend()
         ax.set_xlabel('Days Since Feb 15')
         ax.set_ylabel('Cases per 1 Million Population')
-        fig.show()
-
+        ax.set_title('New York COVID-19 New Cases')
+        fig.tight_layout()
+        if save_name != None:
+            fig.savefig('images/{}'.format(save_name))
 
 def clean_data(df, datetime_col=None):
     clean_df = df.copy()
@@ -146,11 +162,26 @@ def replace_initial_values(df, col_change, val_col):
         prev = st
     return df
 
-def create_spline(x, y):
-    x_smooth = np.linspace(x.min(), x.max(), 15)
-    a_BSpline = make_interp_spline(x, y)
-    y_smooth = a_BSpline(x_smooth)
-    return x_smooth, y_smooth
+
+def create_spline(x, y, t=7):
+    #Use moving average of last t points
+    y_raw = y.values
+    weights = np.repeat(1.0, t) / t
+    mov_avgs_y = np.convolve(y_raw, weights, 'valid')
+    mov_avgs_x = list(range(x.values[0] + t, x.values[-1] + 2))
+    return mov_avgs_x, mov_avgs_y[:len(x) + 1]
+
+def replace_with_moving_averages(df, cols):
+    '''
+    Replaces applicable rows  in columns with the moving averages of the past 7 days.
+    '''
+    df_ma = df.copy()
+    for col in cols:
+        max_index = max(df_ma.index)
+        mv_avgs = create_spline(df_ma['days_elapsed'], df_ma[col])[1]
+        applicable_row_indices = max_index - len(mv_avgs) + 1
+        df_ma.loc[applicable_row_indices:, col] = mv_avgs
+    return df_ma
 
 def load_and_clean_data():
     '''
@@ -253,10 +284,21 @@ def state_plot(state, df):
 if __name__ == '__main__':
     covid_df = load_and_clean_data()
     mask1 = (covid_df['state'] == 'New York')
-    mask2 = (covid_df['days_elapsed'] >= 0)
-    y = covid_df[mask1 & mask2].pop('New_Cases_per_pop')
-    X = covid_df[mask1 & mask2].iloc[:, 1: -1]
-    rf_model = reg_model(X, y, log_trans_y=True)
-    rf_model.rand_forest(n_trees='optimize')
-    rf_model.evaluate_model()
-    rf_model.plot_model()
+#     mask2 = (covid_df['days_elapsed'] >= 0)
+    NY_df = covid_df[mask1]
+    y = NY_df.pop('New_Cases_per_pop')
+    X = NY_df.iloc[:, 1: -1]
+#     rf_model = reg_model(X, y, log_trans_y=True)
+#     rf_model.rand_forest(n_trees= 50)
+#     rf_model.evaluate_model()
+    
+    smooth_x, smooth_y = create_spline(X['days_elapsed'], y)
+    mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
+    mov_avg_df.columns = ('days_elapsed', 'moving_average')
+    mov_avg_df = mov_avg_df[mov_avg_df['moving_average'] >= threshold]
+    
+    revised_df = NY_df.merge(mov_avg_df, on = 'days_elapsed').iloc[:, 1:]
+    
+    #Replace features with moving averages
+    revised_df = replace_with_moving_averages(
+        revised_df, revised_df.columns[1:-1])

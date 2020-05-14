@@ -16,6 +16,12 @@ MVP+:
 MVP ++:​ Use web-scraping and NLP to analyze the type of words being used in recent economic news (ratio of words such as "lockdown", "quarantine", "extended" to words like "protest", "end", "open") to determine a scaling factor between best and worst cases for part 1 model
 
 
+
+# Forecasting
+
+
+
+
 Wednesday:
 
 Thursday:
