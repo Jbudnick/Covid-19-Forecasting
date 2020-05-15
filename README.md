@@ -87,7 +87,7 @@ Looking at the performance of the model on the testing set, it doesn't appear to
 <img src="images/RF_Performance.png">
 <p>
 
-I used my model to predict values out 20 days from the last known data point, this brings us to around the end of May. Using a prediction matrix with varying levels of activity, it does look like a high degree of social distancing and staying home will reduce the number of cases, but we still a long way from 0.
+I used my model to predict values out 20 days from the last known data point, this brings us to around the end of May. Using a prediction matrix with different set levels of activity, it does look like a high degree of social distancing and staying home will reduce the number of cases, but we still a long way from 0. 
 
 <p>
 <img src="images/Predictions.png">
@@ -98,14 +98,16 @@ Unfortunately, it does not look like the occurrence of new cases of COVID-19 are
 
 ## Future Plans/Ideas for improvement
 - Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc)
-- Consider other models
+- Monitor additional states
+- Provide better/varying parameters for prediction matrix - mobility parameters were assumed constant for predicted future
+- Consider trying other regression models
 - Import more features from other data sources:
     - Look at South Korea data - use that to predict into future?
     - Bring in data from travel from other countries - maybe that would help?
         https://travel.trade.gov/view/m-2017-I-001/index.asp
-- Monitor additional states
+    - Weather data - Rumors that the virus doesn't do well in warm/humid conditions
 - Forecast out futher; hopefully will be able to pinpoint a recovery date range
-- Pursue original goal of predicting economic recovery; forecast recovery out further and use recession unemployment data to forecast recovery
+- Pursue original goal of predicting economic recovery; forecast recovery out further and use recession unemployment data to forecast
 - Use web-scraping and NLP to analyze the type of words being used in recent economic news (ratio of words such as "lockdown", "quarantine", "extended" to words like "protest", "end", "open") to determine better scaling factors for my prediction matrix 
 
 
