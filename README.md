@@ -3,7 +3,7 @@
 <p>
 
 # Forecasting the Future of Covid 19 with Social Distancing 
-The question on everyone's minds is when will things go back to normal in the United States from the Covid-19 pandemic? In this Capstone I attempt to predict the future number of new cases of the virus per day in New York and try to find an end in sight using data of how people are socially distancing.
+The question on everyone's mind these days seems to be when will things go back to normal? The United States, as well as the rest of the world, has been hit hard by the Covid-19 pandemic and we are all hoping that the end is in sight. In this study, I attempt to predict the future number of new cases of the virus per day in New York and try to find an end in sight using data of how people are socially distancing.
 
 ## Data + Cleaning
 
