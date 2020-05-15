@@ -1,5 +1,5 @@
 <p>
-<img src="images/covid19_economy_jpg.jpeg" width="500">
+<img src="images/covid19_economy_jpg.jpeg" width="600">
 <p>
 
 # Forecasting the Future of Covid 19 with Social Distancing 
@@ -12,41 +12,41 @@ I primarily used 3 different datasets for this study and combined them into a si
 New York Times: Github Repo of cases/deaths daily per state
 The New York Times offers dataset on the number of cases and deaths by Covid-19 per each state. I created a new column of daily new cases and divided these numbers by the state's population for a fairer comparison from state to state, resulting in new cases per 1 million residents. To smooth out the many spikes in the number of new cases per day, I used a 7 day moving average and used this as the target variable.
 <p>
-<img src="images/Covid_Data.png" width="300">
+<img src="images/Covid_Data.png" width="400">
 <p>
 Apple: Mobility Data
 Apple offers a dataset on mobility that breaks categories into walking, driving, and transit. Unfortunately, walking and transit data are only available on a national and/or city level so I was only able to get driving data from this set. These data are reported as compared to a percentage of the baseline value measured on January 13th - this number was converted by 100 to get a multiplier of normal for each day.
 <p>
-<img src="images/AppleData.png" width="500">
+<img src="images/AppleData.png" width="700">
 <p>
 
 Google: Global Mobility Data
 From Google, I was able to get a massive dataset detailing mobility trends througout the past few months at grocery stores/ pharmacies, parks, transit stations, retail/recreation outlets, residential, and workplaces. This data was reported as the percent change from the baseline, the median value, for the corresponding day of the week, during the 5-week period Jan 3–Feb 6, 2020. To make this measurement consistent with the apple data, I added 100 and divided by 100 to get a multiplier of normal for each day. I also used a 7 day moving average for these features as well, so that weekend trends were avoided and any correlation would be easier to see.
 <p>
-<img src="images/GoogleData.png" width="600">
+<img src="images/GoogleData.png" width="800">
 <p>
 
 # Exploratory Data Analysis
 Although there has been news about a shortage of tests being available for the virus in the USA, the data show a very heavy correlation between deaths and cases for New York, so I decided to focus on new cases instead of deaths, as there is earlier and more data available for cases.
 <p>
-<img src="images/DeathVsCases.png" width="500">
+<img src="images/DeathVsCases.png" width="600">
 <p>
 
 I was originally going to do a subset of states, but in the interest of time had to specialize in only one. I sorted the data available by the maximum number of daily cases and plotted them. I chose New York because New York was the first to have new cases in the US, and one of the few to have shown a strong negative trend over time at some point in the data.
 
 <p>
-<img src="images/Top5States.png" width="700">
+<img src="images/Top5States.png">
 <p>
 
 
 When I plotted the data, I noticed that there are numerous spikes in the data whereas the predicted trend should be based on the moving average. Considering this dataset covers a considerable amount of time and data before the outbreak, I decided not to use any training data below the threshold of 100 new daily cases per 1 million population. This is because this data features no new cases and no changes in social distancing. Using the data below the threshold could mislead the model.
 <p>
-<img src="images/NY_New_100.png" width="600">
+<img src="images/NY_New_100.png">
 <p>
 
 Looking at a scatter matrix, there seems to be a surprising negative trend between social distancing attributes and daily new cases per population. There seems to be a positive rate of of new cases to presence at home, which is also the opposite of what I was expecting.
 <p>
-<img src="images/scatter100.png"width="700">
+<img src="images/scatter100.png">
 <p>
 
 In case I was mistakenly including too much early pandemic data that could be throwing off my results, I tried a threshold at 300 cases per million population instead.
@@ -58,7 +58,7 @@ In case I was mistakenly including too much early pandemic data that could be th
 There seems to be a less negative trend, but not a positive one either. When I began this study, I had assumed that the new cases were the dependent variable and the other variables were the independent variables, but could the cause - effect be the other way around?
 
 <p>
-<img src="images/NY_plot300.png"width="700">
+<img src="images/NY_plot300.png">
 <p>
 
 To get a better visual of how each mobility trend may relate to the new number of cases each day, I scaled each feature data point to a fraction of its maximum value in the interval closest to the peak of the plot. It definitely appears as though a decrease in activity to various venues is followed by a decrease in new cases. Something noteable I found is that there are several spikes in outside activity from days 65-70 and a temporary increase in new cases. It definitely appears that social distancing effects the number of new cases, but with a time lag, which is likely why these trends were not as apparent on the scatter matrices.
