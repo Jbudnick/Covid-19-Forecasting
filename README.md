@@ -69,8 +69,15 @@ Something notable is that there seems to be an explosion in activity in the late
 <img src="images/NY_Social_Distance_days.png">
 <p>
 
+
+
 ## Forecasting
 In order to set up a regression model and predict future values, I converted my original dataframe into a time series matrix and I decided to use a prediction of 20 days using the moving average data points as this seemed like a large enough interval to cover any cause-effects between the features and the target that may be lagging behind. The time series ended up with about 188 features in all, so I decided to use a random forest on my model as it can support high dimensionality with high accuracy.
+
+Feature importances were determined below by summing all previous time series individual feature importances for the 20 day time lag into each specific category. 
+<p>
+<img src="images/feature_importances.png">
+<p>
 
 I split the data into a training and testing group. Training data was used from the threshold to day 70, and Test Data was used from day 70 to the last known point.
 
@@ -90,7 +97,7 @@ I used my model to predict values out 20 days from the last known data point, th
 Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future.
 
 ## Future Plans/Ideas for improvement
-- Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, criterion, etc)
+- Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc)
 - Consider other models
 - Import more features from other data sources:
     - Look at South Korea data - use that to predict into future?
