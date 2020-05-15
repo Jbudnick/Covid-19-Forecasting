@@ -1,9 +1,5 @@
 '''
 See notebooks/EDA.ipynb for plots
-
-Bring in data from travel from other countries - maybe that would help?
-https://travel.trade.gov/view/m-2017-I-001/index.asp
-
 '''
 import pandas as pd
 import datetime
