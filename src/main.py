@@ -1,17 +1,5 @@
 '''
-Ideas : 
-
-questions:
-
-A little concerned about the data - seem to show negative trend in scatter matrix - should i trim off data with very little/ no new cases?
-Implement ARIMA?
-Use data from countries that have covid contained (Have data for south Korea - use that data to help train the data?)
-
-Bring in weather data? Other country data?
-
-Could spikes in the data be caused by a sudden increase in available tests for a state, and should be removed?
-Maybe try using deaths instead of cases; lack of test availablility is a problem so it's possible that the number is fluctuating on account of this? But plot of cases versus deaths looks pretty linear.... but deaths seem to be more predictable than cases...
-Trim data so that the signal is not misled by earlier observations?
+See notebooks/EDA.ipynb for plots
 
 Bring in data from travel from other countries - maybe that would help?
 https://travel.trade.gov/view/m-2017-I-001/index.asp
@@ -55,8 +43,8 @@ class reg_model(object):
             self.y = np.log(elim_invalid + 1)
         else:
             self.y = y
-        train_mask = self.X['days_elapsed'] < day_cutoff
-        holdout_mask = self.X['days_elapsed'] >= day_cutoff
+        train_mask = self.X['days_elapsed(t)'] < day_cutoff
+        holdout_mask = self.X['days_elapsed(t)'] >= day_cutoff
         self.log_trans_y = log_trans_y
         self.X_train, self.X_test, self.y_train, self.y_test = self.X[train_mask], self.X[holdout_mask], self.y[train_mask], self.y[holdout_mask]
         self.error_metric = None
@@ -97,24 +85,28 @@ class reg_model(object):
         self.model.fit(self.X_train, self.y_train)
         self.error_metric = 'rmse'
 
-    def evaluate_model(self):
+    def evaluate_model(self, print_err_metric = False):
         self.y_hat = self.model.predict(self.X_test)
         self.predicted_vals_df = pd.DataFrame(self.y_test)
-        self.predicted_vals_df['days_elapsed'] = self.X_test['days_elapsed']
+        self.predicted_vals_df['days_elapsed(t)'] = self.X_test['days_elapsed(t)']
         self.predicted_vals_df['y_hat'] = self.y_hat
         self.predicted_vals_df.sort_index(inplace=True)
         if self.error_metric == 'rmse':
             rmse = np.sqrt(mean_squared_error(self.y_test, self.y_hat))
+            if print_err_metric:
+                print('rmse:', rmse)
             return rmse
         elif self.error_metric == 'rss':
             rss = np.mean((self.y_test - self.y_hat)**2)
+            if print_err_metric:
+                print('rss: ', rss)
             return rss
 
     def forecast_vals(self, to_forecast_df):
         self.forecasted = self.model.predict(to_forecast_df)
         return self.forecasted
 
-    def plot_model(self, use_smoothed=True, threshold=threshold, save_name = None):
+    def plot_model(self, use_smoothed=True, threshold=threshold, save_name = None, xvar = 'days_elapsed'):
         '''
         Use smoothed generates data using moving average. 
         
@@ -122,18 +114,23 @@ class reg_model(object):
         fig, ax = plt.subplots(figsize=(10, 6))
         if self.log_trans_y == True:
             self.y_test = np.e ** self.y_test
-        ax.bar(self.X_test.loc[:, 'days_elapsed'],
+        ax.bar(self.X_test.loc[:, xvar],
                 self.y_test, color='blue', label="Test Data")
-        ax.bar(self.X_train.loc[:, 'days_elapsed'], np.e **
+        ax.bar(self.X_train.loc[:, xvar], np.e **
                 self.y_train, color='red', label="Training Data")
         if use_smoothed == True:
-            x, y = create_spline(self.X['days_elapsed'], self.y)
+            x, y = create_spline(self.X[xvar], self.y)
             ax.plot(x, np.e**y, c='green', label='Moving Average - 7 days')
         else:
-            ax.plot(self.X_test.loc[:, 'days_elapsed'],
+            x = self.X_test
+            y = self.y
+            ax.plot(self.X_test.loc[:, xvar],
                     self.y_test, c='green', label='Predicted Data')
-        x_thresh = x[np.where(np.e**y >= threshold)[0][0]]
-        ax.axvline(x_thresh, label='Threshold', color='black', ls='--')
+        try:
+            x_thresh = x[np.where(np.e**y >= threshold)[0][0]]
+            ax.axvline(x_thresh, label='Threshold', color='black', ls='--')
+        except:
+            pass
         ax.legend()
         ax.set_xlabel('Days Since Feb 15')
         ax.set_ylabel('Cases per 1 Million Population')
@@ -281,16 +278,46 @@ def state_plot(state, df):
         ax.plot(x, y)
     fig.show()
 
+
+def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
+    """
+    Frame a time series as a supervised learning dataset.
+    Arguments:
+        data: Sequence of observations as a list or NumPy array.
+        n_in: Number of lag observations as input (X).
+        n_out: Number of observations as output (y).
+        dropnan: Boolean whether or not to drop rows with NaN values.
+    Returns:
+        Pandas DataFrame of series framed for supervised learning.
+    """
+    n_vars = 1 if type(data) is list else data.shape[1]
+    df = pd.DataFrame(data)
+    cols, names = list(), list()
+    # input sequence (t-n, ... t-1)
+    for i in range(n_in, 0, -1):
+        cols.append(df.shift(i))
+        names += [('%s(t-%d)' % (columns[j], i)) for j in range(n_vars)]
+    # forecast sequence (t, t+1, ... t+n)
+    for i in range(0, n_out):
+        cols.append(df.shift(-i))
+        if i == 0:
+            names += [('%s(t)' % (columns[j])) for j in range(n_vars)]
+        else:
+            names += [('%s(t+%d)' % (columns[j], i)) for j in range(n_vars)]
+    # put it all together
+    agg = pd.concat(cols, axis=1)
+    agg.columns = names
+    # drop rows with NaN values
+    if dropnan:
+        agg.dropna(inplace=True)
+    return agg
+
 if __name__ == '__main__':
     covid_df = load_and_clean_data()
     mask1 = (covid_df['state'] == 'New York')
-#     mask2 = (covid_df['days_elapsed'] >= 0)
     NY_df = covid_df[mask1]
     y = NY_df.pop('New_Cases_per_pop')
     X = NY_df.iloc[:, 1: -1]
-#     rf_model = reg_model(X, y, log_trans_y=True)
-#     rf_model.rand_forest(n_trees= 50)
-#     rf_model.evaluate_model()
     
     smooth_x, smooth_y = create_spline(X['days_elapsed'], y)
     mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
@@ -302,3 +329,13 @@ if __name__ == '__main__':
     #Replace features with moving averages
     revised_df = replace_with_moving_averages(
         revised_df, revised_df.columns[1:-1])
+
+    values = revised_df.values
+    ts_frame_data = series_to_supervised(values, revised_df.columns, 20, 1)
+    ts_y = ts_frame_data.pop('moving_average(t)')
+    ts_x = ts_frame_data
+    rf_model = reg_model(ts_x, ts_y)
+    rf_model.rand_forest(n_trees= 'optimize')
+    rf_model.evaluate_model()
+
+
