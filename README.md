@@ -2,15 +2,15 @@
 <img src="images/covid19_economy_jpg.jpeg" width="600">
 <p>
 
-# Forecasting the Future of Covid 19 with Social Distancing 
-The question on everyone's mind these days seems to be when will things go back to normal? The United States, as well as the rest of the world, has been hit hard by the Covid-19 pandemic and we are all hoping that the end is in sight. In this study, I attempt to predict the future number of new cases of the virus per day in New York and try to find an end in sight using data of how people are socially distancing.
+# Forecasting the Future of COVID-19 with Social Distancing 
+The question on everyone's mind these days seems to be when will things go back to normal? The United States, as well as the rest of the world, has been hit hard by the COVID-19 pandemic and we are all hoping that the end is in sight. In this study, I attempt to predict the future number of new cases of the virus per day in New York and try to find an end in sight using data of how people are socially distancing.
 
 ## Data + Cleaning
 
 I primarily used 3 different datasets for this study and combined them into a single DataFrame for analysis and prediction.
 
 New York Times: Github Repo of cases/deaths daily per state
-The New York Times offers dataset on the number of cases and deaths by Covid-19 per each state. I created a new column of daily new cases and divided these numbers by the state's population for a fairer comparison from state to state, resulting in new cases per 1 million residents. To smooth out the many spikes in the number of new cases per day, I used a 7 day moving average and used this as the target variable.
+The New York Times offers dataset on the number of cases and deaths by COVID-19 per each state. I created a new column of daily new cases and divided these numbers by the state's population for a fairer comparison from state to state, resulting in new cases per 1 million residents. To smooth out the many spikes in the number of new cases per day, I used a 7 day moving average and used this as the target variable.
 <p>
 <img src="images/Covid_Data.png" width="400">
 <p>
@@ -87,7 +87,7 @@ I used my model to predict values out 20 days from the last known data point, th
 <p>
 
 ## Conclusion
-Unfortunately, it does not look like the occurrence of new cases of Covid-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future.
+Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future.
 
 ## Future Plans/Ideas for improvement
 - Consider other models
