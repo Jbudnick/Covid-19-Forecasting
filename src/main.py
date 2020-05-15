@@ -29,6 +29,9 @@ threshold = 100
 
 class reg_model(object):
     def __init__(self, X, y, log_trans_y=False, day_cutoff = 70):
+        '''
+        Day cutoff is split between training and testing data.
+        '''
         self.X = X
         if log_trans_y == True:
             elim_invalid = y.copy()
@@ -61,9 +64,13 @@ class reg_model(object):
 
     def rand_forest(self, n_trees=50):
         '''
-        Upon inspection of the model over time, the number of new cases shows a period of exponential growth, then linear growth where the new cases levels off. Then a random forest model can be applied. A Y-transform should be applied on the data. 
+        Upon inspection of the model over time, the number of new cases shows a period of exponential growth, then linear growth where the new cases levels off. Then a random forest model can be applied. 
         '''
         if n_trees == 'optimize':
+            '''
+            If set to optimize, will take a selection of 1 to max_trees and uses number that minimizes error in training set.
+            This can be plotted by uncommenting out the plt.plot(n, error) line.
+            '''
             max_trees = 100
             n = np.arange(1, max_trees + 1, 1)
             error = []
@@ -341,30 +348,32 @@ def generate_prediction_df(level, test_df, test_targs, columns, predictions=20):
     return prediction_ts
 
 if __name__ == '__main__':
+    #Load data, select only New York for now
     covid_df = load_and_clean_data()
     mask1 = (covid_df['state'] == 'New York')
     NY_df = covid_df[mask1]
     y = NY_df.pop('New_Cases_per_pop')
     X = NY_df.iloc[:, 1: -1]
     
+    #Calculate moving average, use as target variable instead of raw new cases/pop
     smooth_x, smooth_y = create_spline(X['days_elapsed'], y)
     mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
     mov_avg_df.columns = ('days_elapsed', 'moving_average')
     mov_avg_df = mov_avg_df[mov_avg_df['moving_average'] >= threshold]
-    
     revised_df = NY_df.merge(mov_avg_df, on = 'days_elapsed').iloc[:, 1:]
-    
-    #Replace features with moving averages
     revised_df = replace_with_moving_averages(
         revised_df, revised_df.columns[1:-1])
 
-    revised_df.drop('pop_density', axis= 1, inplace = True)  #Only one state is currently considered in this study
+    #Only one state is currently considered in this study, no need to compare pop_density
+    revised_df.drop('pop_density', axis= 1, inplace = True) 
+
+    #Create time series dataframe, fit it into model and evaluate 
     values = revised_df.values
     ts_frame_data = series_to_supervised(values, revised_df.columns, 20, 1)
     ts_y = ts_frame_data.pop('moving_average(t)')
     ts_x = ts_frame_data
     rf_model = reg_model(ts_x, ts_y)
     rf_model.rand_forest(n_trees= 'optimize')
-    rf_model.evaluate_model()
+    rf_model.evaluate_model(print_err_metric = True)
 
     #Plots in notebooks/EDA.ipynb

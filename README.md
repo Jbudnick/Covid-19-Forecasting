@@ -90,6 +90,7 @@ I used my model to predict values out 20 days from the last known data point, th
 Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future.
 
 ## Future Plans/Ideas for improvement
+- Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, criterion, etc)
 - Consider other models
 - Import more features from other data sources:
     - Look at South Korea data - use that to predict into future?
