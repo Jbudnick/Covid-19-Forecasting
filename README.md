@@ -44,22 +44,12 @@ When I plotted the data, I noticed that there are numerous spikes in the data wh
 <img src="images/NY_New_100.png">
 <p>
 
-Looking at a scatter matrix, there seems to be a surprising negative trend between social distancing attributes and daily new cases per population. There seems to be a positive rate of of new cases to presence at home, which is also the opposite of what I was expecting.
+Looking at plots of New Cases versus the amount of public activity, there seems to be a surprising negative trend between social distancing attributes and daily new cases per population. There seems to be a positive rate of of new cases to presence at home, which is also the opposite of what I was expecting.
 <p>
-<img src="images/scatter100.png">
-<p>
-
-In case I was mistakenly including too much early pandemic data that could be throwing off my results, I tried a threshold at 300 cases per million population instead.
-
-<p>
-<img src="images/NY_New_300.png">
+<img src="images/CasesperActivit.png">
 <p>
 
-There seems to be a less negative trend, but not a positive one either. When I began this study, I had assumed that the new cases were the dependent variable and the other variables were the independent variables, but could the cause - effect be the other way around?
-
-<p>
-<img src="images/NY_plot300.png">
-<p>
+In case I was mistakenly including too much early pandemic data that could be throwing off my results, I tried a threshold at 300 cases per million population instead, which yielded a less negative trend, but not a positive one either.
 
 To get a better visual of how each mobility trend may relate to the new number of cases each day, I scaled each feature data point to a fraction of its maximum value in the interval closest to the peak of the plot. It definitely appears as though a decrease in activity to various venues is followed by a decrease in new cases. Something noteable I found is that there are several spikes in outside activity from days 65-70 and a temporary increase in new cases. It definitely appears that social distancing effects the number of new cases, but with a time lag, which is likely why these trends were not as apparent on the scatter matrices.
 
@@ -68,7 +58,6 @@ Something notable is that there seems to be an explosion in activity in the late
 <p>
 <img src="images/NY_Social_Distance_days.png">
 <p>
-
 
 
 ## Forecasting
@@ -97,8 +86,11 @@ I used my model to predict values out 20 days from the last known data point, th
 Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future.
 
 ## Future Plans/Ideas for improvement
+- Normalize the model, so that it can be used for other states as well
+- Provide sample of X and y matrices
 - Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc)
 - Monitor additional states
+- Add evidence for threshold choice, day cutoff choice
 - Provide better/varying parameters for prediction matrix - mobility parameters were assumed constant for predicted future
 - Consider trying other regression models
 - Import more features from other data sources:
