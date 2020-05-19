@@ -50,6 +50,13 @@ Looking at plots of New Cases versus the amount of public activity, there seems 
 <p>
 
 In case I was mistakenly including too much early pandemic data that could be throwing off my results, I tried a threshold at 300 cases per million population instead, which yielded a less negative trend, but not a positive one either.
+<p>
+<img src="images/NY_New_300.png">
+<p>
+
+<p>
+<img src="images/NYSocialDistanceplots.png">
+<p>
 
 To get a better visual of how each mobility trend may relate to the new number of cases each day, I scaled each feature data point to a fraction of its maximum value in the interval closest to the peak of the plot. It definitely appears as though a decrease in activity to various venues is followed by a decrease in new cases. Something noteable I found is that there are several spikes in outside activity from days 65-70 and a temporary increase in new cases. It definitely appears that social distancing effects the number of new cases, but with a time lag, which is likely why these trends were not as apparent on the scatter matrices.
 
@@ -88,9 +95,8 @@ Unfortunately, it does not look like the occurrence of new cases of COVID-19 are
 ## Future Plans/Ideas for improvement
 - Normalize the model, so that it can be used for other states as well
 - Provide sample of X and y matrices
-- Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc)
+- Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc), add evidence for these choices
 - Monitor additional states
-- Add evidence for threshold choice, day cutoff choice
 - Provide better/varying parameters for prediction matrix - mobility parameters were assumed constant for predicted future
 - Consider trying other regression models
 - Import more features from other data sources:
