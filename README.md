@@ -95,7 +95,7 @@ Unfortunately, it does not look like the occurrence of new cases of COVID-19 are
 ## Future Plans/Ideas for improvement
 - 1. Normalize the model, so that it can be used for other states as well, monitor other states
 - 2. Use deaths instead of cases to ensure consistency across states?
-- 3. Convert Days since February 15th back into actual month/dates, fix moving_average label to new cases/deaths
+- 3. Convert Days since February 15th back into actual month/dates, fix moving_average label to new cases/deaths, break code up into several scripts
 - 4. Provide sample of X and y matrices
 - 5. Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc), add evidence for these choices]
 - 6. Pursue original goal of predicting economic recovery; forecast recovery out further and use recession unemployment data to forecast
