@@ -93,21 +93,21 @@ I used my model to predict values out 20 days from the last known data point, th
 Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future.
 
 ## Future Plans/Ideas for improvement
-- Normalize the model, so that it can be used for other states as well
-- Provide sample of X and y matrices
-- Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc), add evidence for these choices
-- Monitor additional states
-- Provide better/varying parameters for prediction matrix - mobility parameters were assumed constant for predicted future
-- Consider trying other regression models
-- Import more features from other data sources:
+- 1. Normalize the model, so that it can be used for other states as well, monitor other states
+- 2. Use deaths instead of cases to ensure consistency across states?
+- 3. Convert Days since February 15th back into actual month/dates, fix moving_average label to new cases/deaths
+- 4. Provide sample of X and y matrices
+- 5. Experiment using different thresholds for training/test split, modify parameters for random forest (max_depth, gini/entropy, etc), add evidence for these choices]
+- 6. Pursue original goal of predicting economic recovery; forecast recovery out further and use recession unemployment data to forecast
+- 7. Forecast out futher; hopefully will be able to pinpoint a recovery date range
+- 8. Provide better/varying parameters for prediction matrix - mobility parameters were assumed constant for predicted future
+- 9. Consider trying other regression models
+- 10. Import more features from other data sources:
     - Look at South Korea data - use that to predict into future?
     - Bring in data from travel from other countries - maybe that would help?
         https://travel.trade.gov/view/m-2017-I-001/index.asp
     - Weather data - Rumors that the virus doesn't do well in warm/humid conditions
-- Forecast out futher; hopefully will be able to pinpoint a recovery date range
-- Pursue original goal of predicting economic recovery; forecast recovery out further and use recession unemployment data to forecast
-- Use web-scraping and NLP to analyze the type of words being used in recent economic news (ratio of words such as "lockdown", "quarantine", "extended" to words like "protest", "end", "open") to determine better scaling factors for my prediction matrix 
-
+- 11. Use web-scraping and NLP to analyze the type of words being used in recent economic news (ratio of words such as "lockdown", "quarantine", "extended" to words like "protest", "end", "open") to determine better scaling factors for my prediction matrix. 
 
 ## Data Sources:
 
