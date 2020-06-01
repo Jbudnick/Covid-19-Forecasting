@@ -17,13 +17,13 @@ The New York Times offers dataset on the number of cases and deaths by COVID-19 
 Apple: Mobility Data
 Apple offers a dataset on mobility that breaks categories into walking, driving, and transit. Unfortunately, walking and transit data are only available on a national and/or city level so I was only able to get driving data from this set. These data are reported as compared to a percentage of the baseline value measured on January 13th - this number was converted by 100 to get a multiplier of normal for each day.
 <p>
-<img src="images/AppleData.png" width="700">
+<img src="images/AppleData.png" width="1000">
 <p>
 
 Google: Global Mobility Data
 From Google, I was able to get a massive dataset detailing mobility trends througout the past few months at grocery stores/ pharmacies, parks, transit stations, retail/recreation outlets, residential, and workplaces. This data was reported as the percent change from the baseline, the median value, for the corresponding day of the week, during the 5-week period Jan 3–Feb 6, 2020. To make this measurement consistent with the apple data, I added 100 and divided by 100 to get a multiplier of normal for each day. I also used a 7 day moving average for these features as well, so that weekend trends were avoided and any correlation would be easier to see.
 <p>
-<img src="images/GoogleData.png" width="800">
+<img src="images/GoogleData.png" width="1000">
 <p>
 
 # Exploratory Data Analysis
