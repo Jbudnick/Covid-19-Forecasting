@@ -122,6 +122,8 @@ if __name__ == '__main__':
     revised_df = NY_df.merge(mov_avg_df, on='days_elapsed').iloc[:, 1:]
     revised_df = replace_with_moving_averages(
         revised_df, revised_df.columns[1:-1])
+    revised_df.rename(
+        columns={'moving_average': 'Daily New Cases'}, inplace=True)
 
     #Only one state is currently considered in this study, no need to compare pop_density
     revised_df.drop('pop_density', axis=1, inplace=True)
@@ -129,7 +131,7 @@ if __name__ == '__main__':
     #Create time series dataframe, fit it into model and evaluate
     values = revised_df.values
     ts_frame_data = series_to_supervised(values, revised_df.columns, 20, 1)
-    ts_y = ts_frame_data.pop('moving_average(t)')
+    ts_y = ts_frame_data.pop('Daily New Cases(t)')
     ts_x = ts_frame_data
     rf_model = reg_model(ts_x, ts_y)
     rf_model.rand_forest(n_trees='optimize')
