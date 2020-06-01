@@ -17,6 +17,7 @@
 *.tax2010
 *.vcf
 *.xml
+*.numbers
 
 ### macOS ###
 # General
