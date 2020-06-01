@@ -19,6 +19,9 @@
 *.xml
 *.numbers
 
+\images
+.DS_Store
+
 ### macOS ###
 # General
 .DS_Store
