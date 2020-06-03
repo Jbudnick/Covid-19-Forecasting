@@ -98,7 +98,7 @@ def load_and_clean_data():
     The CSV file and charts on this site show a relative volume of directions requests per country/region, sub-region or city compared to a baseline volume on January 13th, 2020. We define our day as midnight-to-midnight, Pacific time.
     https://www.apple.com/covid19/mobility 
     '''
-    transp_raw_df = pd.read_csv('data/applemobilitytrends-2020-05-09.csv')
+    transp_raw_df = pd.read_csv('data/applemobilitytrends-2020-06-01.csv')
     transp_df = transp_raw_df[(transp_raw_df['geo_type'] == 'sub-region')
                               & (transp_raw_df['region'].isin(states))].copy()
     #Driving is only available transportation type data available for statewide data
