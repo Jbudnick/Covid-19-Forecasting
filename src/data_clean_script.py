@@ -1,15 +1,16 @@
-import pandas as pd
 import numpy as np
 import datetime
 
 
-def create_spline(x, y, t=7):
-    #Use moving average of last t points
-    y_raw = y.values
+def create_spline(x, y, t=7, day_delay=0):
+    '''
+    Use moving average of t points at day_delay
+    '''
+    y_raw = y.values if day_delay == 0 else y.values[:-day_delay]
     weights = np.repeat(1.0, t) / t
     mov_avgs_y = np.convolve(y_raw, weights, 'valid')
-    mov_avgs_x = list(range(x.values[0] + t, x.values[-1] + 2))
-    return mov_avgs_x, mov_avgs_y[:len(x) + 1]
+    mov_avgs_x = list(range(x.values[0] + t + day_delay, x.values[-1] + 2))
+    return mov_avgs_x, mov_avgs_y[:len(mov_avgs_x) + 1]
 
 
 def clean_data(df, datetime_col=None):
@@ -38,14 +39,17 @@ def replace_initial_values(df, col_change, val_col):
     return df
 
 
-def replace_with_moving_averages(df, cols):
+def replace_with_moving_averages(df, cols, xcol='days_elapsed', day_delay=0):
     '''
-    Replaces applicable rows  in columns with the moving averages of the past 7 days.
+    Replaces applicable rows  in columns with weekly average days_past days ago.
+    Days_past is an optional parameter if we want to set the moving average to the weekly moving average x number of days ago.
+
     '''
     df_ma = df.copy()
     for col in cols:
         max_index = max(df_ma.index)
-        mv_avgs = create_spline(df_ma['days_elapsed'], df_ma[col])[1]
+        mv_avgs = create_spline(
+            df_ma[xcol], df_ma[col], day_delay=day_delay)[1]
         applicable_row_indices = max_index - len(mv_avgs) + 1
         df_ma.loc[applicable_row_indices:, col] = mv_avgs
     return df_ma
@@ -63,6 +67,7 @@ def load_and_clean_data():
     covid_df['New_Cases'] = covid_df['cases'].diff()
 
     covid_df = replace_initial_values(covid_df, 'state', 'New_Cases')
+
     '''
     Mobility Data - From Google
     #The baseline is the median value, for the corresponding day of the week, during the 5-week period Jan 3–Feb 6, 2020

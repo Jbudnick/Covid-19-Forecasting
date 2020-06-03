@@ -11,10 +11,12 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
 from scipy.interpolate import make_interp_spline
-from data_clean_script import convert_to_date
 
 import matplotlib.pyplot as plt
 import matplotlib
+
+from matplotlib.dates import (DAILY, DateFormatter,
+                              rrulewrapper, RRuleLocator, drange)
 
 
 class reg_model(object):
@@ -99,7 +101,7 @@ class reg_model(object):
         self.forecasted = self.model.predict(to_forecast_df)
         return self.forecasted
 
-    def plot_model(self, use_smoothed=True, threshold=100, save_name=None, xvar='days_elapsed', convDate=True):
+    def plot_model(self, use_smoothed=True, threshold=100, save_name=None, xvar='days_elapsed(t)', convDate=True):
         '''
         Use smoothed generates data using moving average. 
         Convdate converts days elapsed into date
@@ -117,6 +119,10 @@ class reg_model(object):
             ax.plot_date(x, np.e**y, c='green',
                          label='Moving Average - 7 days', xdate=True, marker='', ls='-')
             fig.autofmt_xdate()
+
+            rule = rrulewrapper(DAILY, interval=7)
+            loc = RRuleLocator(rule)
+            formatter = DateFormatter('%y/%m/%d')
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_major_formatter(formatter)
             ax.xaxis.set_tick_params(rotation=30, labelsize=14)
@@ -135,7 +141,7 @@ class reg_model(object):
         except:
             pass
         ax.legend()
-        ax.set_ylabel('Cases per 1 Million Population')
+        ax.set_ylabel('Daily Cases per 1 Million Population')
         ax.set_title('New York COVID-19 New Cases')
         fig.tight_layout()
         if save_name != None:

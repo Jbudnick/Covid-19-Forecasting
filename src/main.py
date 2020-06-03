@@ -70,12 +70,32 @@ def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
     return agg
 
 
-def generate_prediction_df(level, test_df, test_targs, columns, predictions=20):
-    '''
-    This function generates a prediction array based on the level of social distancing. The predetermined sets
-    are determined as follows: High: Minimum values for each column (except residential),
-    # Medium: inbetween values, Low: 1 (Back to Normal)
-    '''
+def fill_diagonals(df, preds, model, n_interval=21):
+    df.fillna(0, inplace=True)
+    n_rows = df.shape[0]
+    new_preds = list(preds.values)
+    for row in range(n_rows)[:]:
+        new_pred = model.predict(df[row:row + 1])[0]
+        new_preds.append(new_pred)
+        j = 0
+        for col in range(n_interval-1, 0, -1):
+            try:
+                df.iloc[row + j, col] = new_pred
+                j += 1
+            except:
+                continue
+    new_pred = model.predict(df[-1:-2:-1])[0]
+    new_preds.append(new_pred)
+    return df, new_preds
+
+
+def generate_prediction_df(level, total_x, total_y, predictions=21):
+
+    #Part 1: Expands time lagged Daily New Cases columns
+
+    columns = ['days_elapsed(t)', 'retail_and_recreation(t)', 'grocery_and_pharmacy(t)',
+               'parks(t)', 'transit_stations(t)', 'workplaces(t)', 'residential(t)', 'driving(t)']
+
     levelDict = {'High': [0.34, 0.5, 0.36, 0.295, 0.4, 1.3, 0.385],
                  'Medium': [0.6, 0.8, 0.7, 0.7, 0.75, 1.1, 0.7],
                  'Low': [1, 1, 1, 1, 1, 0.9, 1]
@@ -85,25 +105,34 @@ def generate_prediction_df(level, test_df, test_targs, columns, predictions=20):
         pred_params = level
     else:
         pred_params = levelDict[level]
+    pred_df = total_x.copy()
 
-    pred_df = rf_model.X.loc[:, 'days_elapsed(t)':].copy()
-    pred_df['moving_average'] = rf_model.y
-    pred_df.columns = columns
-    last_recorded_day = int(test_df['days_elapsed(t)'].max())
+    # last_recorded_day = int(test_df['days_elapsed(t)'].max())
+    last_recorded_day = 82
     for i in range(last_recorded_day + 1, last_recorded_day + predictions + 1):
         pred_df_row = pd.DataFrame([i] + pred_params).T
-        pred_df_row.columns = columns[:-1]
-        pred_df = pred_df.append(pred_df_row, sort=True)
-    pred_df = pred_df[columns]
-    prediction_ts = series_to_supervised(
-        pred_df, columns=columns, n_in=0, n_out=21, dropnan=False)
-    prediction_ts = prediction_ts[prediction_ts['days_elapsed(t)'] <= 82]
+        pred_df_row.columns = columns
+        pred_df = pred_df.append(pred_df_row, sort=False)
 
-    #Filling in Nan in former time series fields for moving average with the average values seen - to fix later
-    avg_mov_average = prediction_ts.iloc[:6, -1].mean()
-    prediction_ts.fillna(avg_mov_average, inplace=True)
-    prediction_ts.drop('moving_average(t+20)', axis=1, inplace=True)
-    return prediction_ts
+    y_pred = total_y
+
+    # Part 2: Fills in blank known new cases values
+    n_rows = pred_df.shape[0]
+    pred_df.fillna(0, inplace=True)
+    row_start = 25
+    col_start = 20
+    new_preds = list(y_pred.values)
+    pred_df.iloc[row_start, col_start] = y_pred.values[row_start - 1]
+    for row in range(row_start, n_rows):
+        for col in range(col_start - 1, -1, -1):
+            pred_df.iloc[row, col] = pred_df.iloc[row - 1, col + 1]
+
+    #Part 3: Fills in rest of time lagged values for future t values, predicting based on prior predictions
+    pred_df = fill_diagonals(
+        pred_df, y_pred.loc[:45], rf_model.model, n_interval=21)[0].loc[42:, :]
+    pred_y = fill_diagonals(pred_df, y_pred.loc[:], rf_model.model, n_interval=21)[
+        1][-pred_df.shape[0]:]
+    return pred_df, pred_y
 
 
 if __name__ == '__main__':
@@ -117,24 +146,24 @@ if __name__ == '__main__':
     #Calculate moving average, use as target variable instead of raw new cases/pop
     smooth_x, smooth_y = create_spline(X['days_elapsed'], y)
     mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
-    mov_avg_df.columns = ('days_elapsed', 'moving_average')
-    mov_avg_df = mov_avg_df[mov_avg_df['moving_average'] >= threshold]
+    mov_avg_df.columns = ('days_elapsed', 'Daily New Cases')
+    NY_df = replace_with_moving_averages(
+        NY_df, NY_df.columns[2:-1], day_delay=3)
+    mov_avg_df = mov_avg_df[mov_avg_df['Daily New Cases'] >= threshold]
     revised_df = NY_df.merge(mov_avg_df, on='days_elapsed').iloc[:, 1:]
-    revised_df = replace_with_moving_averages(
-        revised_df, revised_df.columns[1:-1])
-    revised_df.rename(
-        columns={'moving_average': 'Daily New Cases'}, inplace=True)
 
     #Only one state is currently considered in this study, no need to compare pop_density
     revised_df.drop('pop_density', axis=1, inplace=True)
 
     #Create time series dataframe, fit it into model and evaluate
     values = revised_df.values
-    ts_frame_data = series_to_supervised(values, revised_df.columns, 20, 1)
+    ts_frame_data = series_to_supervised(values, revised_df.columns, 21, 1)
+    ts_frame_data = ts_frame_data.iloc[:,
+                                       8:-5:9].join(ts_frame_data.iloc[:, -9:])
     ts_y = ts_frame_data.pop('Daily New Cases(t)')
     ts_x = ts_frame_data
     rf_model = reg_model(ts_x, ts_y)
-    rf_model.rand_forest(n_trees='optimize')
+    rf_model.rand_forest(n_trees=100)
     rf_model.evaluate_model(print_err_metric=True)
 
     #Plots in notebooks/EDA.ipynb
