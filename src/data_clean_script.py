@@ -1,6 +1,6 @@
+import pandas as pd
 import numpy as np
 import datetime
-
 
 def create_spline(x, y, t=7, day_delay=0):
     '''
@@ -9,7 +9,8 @@ def create_spline(x, y, t=7, day_delay=0):
     y_raw = y.values if day_delay == 0 else y.values[:-day_delay]
     weights = np.repeat(1.0, t) / t
     mov_avgs_y = np.convolve(y_raw, weights, 'valid')
-    mov_avgs_x = list(range(x.values[0] + t + day_delay, x.values[-1] + 2))
+    mov_avgs_x = list(
+        range(int(x.values[0] + t + day_delay), int(x.values[-1] + 2)))
     return mov_avgs_x, mov_avgs_y[:len(mov_avgs_x) + 1]
 
 
@@ -102,7 +103,7 @@ def load_and_clean_data():
     transp_df = transp_raw_df[(transp_raw_df['geo_type'] == 'sub-region')
                               & (transp_raw_df['region'].isin(states))].copy()
     #Driving is only available transportation type data available for statewide data
-    transp_df.drop(['geo_type', 'alternative_name', 'transportation_type'],
+    transp_df.drop(['geo_type', 'alternative_name', 'transportation_type', 'sub-region', 'country'],
                    axis=1, inplace=True)
     transp_df.set_index('region', inplace=True)
     transp_df = (transp_df.T) / 100  # Convert to percentage of normal
@@ -147,3 +148,17 @@ def load_and_clean_data():
         covid_df.loc[513, 'parks'] + covid_df.loc[515, 'parks'])/2
 
     return covid_df
+
+
+def fill_na_with_surround(df, col):
+    '''
+    Can be used to fill NA values with the average of the two surrounding values in a series of missing values.
+    Note: Currently only tested if one continuous series of non numeric values exists in the specified col.
+    Also assumes valid value exists after the series of NaNs.
+    '''
+    indices = df[df[col].isnull()].index.values
+    val_1 = df[col].iloc[min(indices) - 1]
+    val_2 = df[col].iloc[max(indices) + 1]
+    replace = (val_1 + val_2) / 2
+    df[col].fillna(replace, inplace=True)
+    return df

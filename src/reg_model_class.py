@@ -11,7 +11,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
 from scipy.interpolate import make_interp_spline
+from data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround
 
+from pandas.plotting import register_matplotlib_converters
 import matplotlib.pyplot as plt
 import matplotlib
 
@@ -20,7 +22,7 @@ from matplotlib.dates import (DAILY, DateFormatter,
 
 
 class reg_model(object):
-    def __init__(self, X, y, log_trans_y=False, day_cutoff=70):
+    def __init__(self, X, y, log_trans_y=False, day_cutoff=87):
         '''
         Day cutoff is split between training and testing data.
         '''
@@ -55,7 +57,7 @@ class reg_model(object):
         self.model.fit(self.X_train, self.y_train)
         self.error_metric = 'rss'
 
-    def rand_forest(self, n_trees=50):
+    def rand_forest(self, n_trees=100):
         '''
         Upon inspection of the model over time, the number of new cases shows a period of exponential growth, then linear growth where the new cases levels off. Then a random forest model can be applied. 
         '''
@@ -68,15 +70,16 @@ class reg_model(object):
             n = np.arange(1, max_trees + 1, 1)
             error = []
             for each in n:
-                self.model = RandomForestRegressor(n_estimators=each)
+                self.model = RandomForestRegressor(
+                    n_estimators=each, n_jobs=-1, random_state=1)
                 self.model.fit(self.X_train, self.y_train)
                 self.error_metric = 'rmse'
                 error.append(self.evaluate_model())
             #plt.plot(n, error)
             n_trees = n[error.index(min(error))]
-        # max_depth = 3, oob_score = False, random_state = 10
+        # n_jobs = -1, random_state = 0, max_depth = 3, oob_score = False, random_state = 10
         self.model = RandomForestRegressor(
-            n_estimators=n_trees, max_depth=None, oob_score=False, warm_start=True, random_state=500)
+            n_estimators=n_trees, random_state=None)
         self.model.fit(self.X_train, self.y_train)
         self.error_metric = 'rmse'
 
@@ -106,18 +109,19 @@ class reg_model(object):
         Use smoothed generates data using moving average. 
         Convdate converts days elapsed into date
         '''
+        register_matplotlib_converters()
         fig, ax = plt.subplots(figsize=(10, 6))
         if self.log_trans_y == True:
             self.y_test = np.e ** self.y_test
         ax.bar(self.X_test.loc[:, xvar].apply(convert_to_date),
                self.y_test, color='blue', label="Test Data")
-        ax.bar(self.X_train.loc[:, xvar].apply(convert_to_date), np.e **
+        ax.bar(self.X_train.loc[:, xvar].apply(convert_to_date),
                self.y_train, color='red', label="Training Data")
         if use_smoothed == True:
             x, y = create_spline(self.X[xvar], self.y)
             x = pd.DataFrame(x).iloc[:, 0].apply(convert_to_date)
-            ax.plot_date(x, np.e**y, c='green',
-                         label='Moving Average - 7 days', xdate=True, marker='', ls='-')
+            ax.plot_date(x, y, c='green', label='Moving Average - 7 days',
+                         xdate=True, marker='', ls='-')
             fig.autofmt_xdate()
 
             rule = rrulewrapper(DAILY, interval=7)
