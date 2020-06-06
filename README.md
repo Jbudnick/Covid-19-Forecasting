@@ -112,6 +112,7 @@ Unfortunately, it does not look like the occurrence of new cases of COVID-19 are
 ## Data Sources:
 
 Header image : https://spectrumlocalnews.com/nc/triangle-sandhills/tying-it-together-with-tim-boyum/2020/04/28/tying-it-together-with-tim-boyum-checking-the-pulse-on-nc-s-economic-health-during-the-coronavirus-crisis
+https://www.xifin.com/resources/blog/202004/covid-19-maintaining-momentum-during-volume-recessions 
 
 https://github.com/nytimes/covid-19-data/blob/master/us-states.csv 
 
