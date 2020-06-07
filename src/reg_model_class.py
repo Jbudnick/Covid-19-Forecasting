@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
 from scipy.interpolate import make_interp_spline
-from data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround
+from src.data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround
 
 from pandas.plotting import register_matplotlib_converters
 import matplotlib.pyplot as plt
@@ -22,7 +22,7 @@ from matplotlib.dates import (DAILY, DateFormatter,
 
 
 class reg_model(object):
-    def __init__(self, X, y, log_trans_y=False, day_cutoff=87):
+    def __init__(self, X, y, log_trans_y=False, day_cutoff=93):
         '''
         Day cutoff is split between training and testing data.
         '''
@@ -118,7 +118,7 @@ class reg_model(object):
         ax.bar(self.X_train.loc[:, xvar].apply(convert_to_date),
                self.y_train, color='red', label="Training Data")
         if use_smoothed == True:
-            x, y = create_spline(self.X[xvar], self.y)
+            x, y = create_spline(self.X[xvar], self.y, day_delay=0)
             x = pd.DataFrame(x).iloc[:, 0].apply(convert_to_date)
             ax.plot_date(x, y, c='green', label='Moving Average - 7 days',
                          xdate=True, marker='', ls='-')
@@ -131,8 +131,6 @@ class reg_model(object):
             ax.xaxis.set_major_formatter(formatter)
             ax.xaxis.set_tick_params(rotation=30, labelsize=14)
             ax.set_xlabel('Date')
-#             start_x = convert_to_date(25)
-#             ax.set_xlim(start_x)
         else:
             x = self.X_test
             y = self.y

@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import datetime
 
-def create_spline(x, y, t=7, day_delay=0):
+
+def create_spline(x, y, day_delay, t=7):
     '''
     Use moving average of t points at day_delay
     '''
@@ -40,10 +41,10 @@ def replace_initial_values(df, col_change, val_col):
     return df
 
 
-def replace_with_moving_averages(df, cols, xcol='days_elapsed', day_delay=0):
+def replace_with_moving_averages(df, cols, day_delay, xcol='days_elapsed'):
     '''
     Replaces applicable rows  in columns with weekly average days_past days ago.
-    Days_past is an optional parameter if we want to set the moving average to the weekly moving average x number of days ago.
+    Day delay is an optional parameter if we want to set the moving average to the weekly moving average x number of days ago.
 
     '''
     df_ma = df.copy()
@@ -56,9 +57,11 @@ def replace_with_moving_averages(df, cols, xcol='days_elapsed', day_delay=0):
     return df_ma
 
 
-def load_and_clean_data():
+def load_and_clean_data(new_cases_per_pop=True):
     '''
-    Sets up and generates dataframe for analysis
+    Arguments: new_cases_per_pop = True
+    Sets up and generates dataframe for analysis 
+    If new cases per pop is disabled, will use raw number of new cases instead.
     '''
 
     #Import and clean covid data (Cases in 2020)
@@ -131,34 +134,47 @@ def load_and_clean_data():
     state_pops = pd.read_csv('data/pop_by_state.csv',
                              header=1, usecols=['State', 'Pop'])
     state_area = pd.read_csv('data/state_area.csv',
-                             usecols=['State', 'TotalArea'])
+                             usecols=['State', 'LandArea'])
     state_pops.rename(columns={'State': 'state'}, inplace=True)
     state_area.rename(columns={'State': 'state'}, inplace=True)
     state_pops = state_pops.merge(state_area, on='state')
-    state_pops['pop_density'] = state_pops['Pop'] / state_pops['TotalArea']
-    state_pops['Pop'] = state_pops['Pop'] / 1000000
-    covid_df = covid_df.merge(state_pops, on='state')
-    covid_df['New_Cases_per_pop'] = covid_df['New_Cases'] / covid_df['Pop']
-    covid_df.drop(['TotalArea', 'New_Cases', 'Pop'], axis=1, inplace=True)
+    state_pops['pop_density'] = state_pops['Pop'] / state_pops['LandArea']
+
+    if new_cases_per_pop == True:
+        state_pops['Pop'] = state_pops['Pop'] / 1000000
+        covid_df = covid_df.merge(state_pops, on='state')
+        covid_df['New_Cases_per_pop'] = covid_df['New_Cases'] / covid_df['Pop']
+        covid_df.drop(['LandArea', 'Pop'], axis=1, inplace=True)
+        covid_df.drop(['New_Cases'], axis=1, inplace=True)
 
     #2 missing park values; manually fill them in with average of surrounding value
-    covid_df.loc[507, 'parks'] = (
-        covid_df.loc[506, 'parks'] + covid_df.loc[508, 'parks'])/2
-    covid_df.loc[514, 'parks'] = (
-        covid_df.loc[513, 'parks'] + covid_df.loc[515, 'parks'])/2
-
+    missing_parks_ind = [507, 514, 661, 668,
+                         675, 682, 689, 1017, 1024, 1031, 2940]
+    covid_df = fill_na_with_surround(
+        covid_df, 'parks', series=missing_parks_ind)
     return covid_df
 
 
-def fill_na_with_surround(df, col):
+def fill_na_with_surround(df, col, series=True, ind_loc='iloc'):
     '''
-    Can be used to fill NA values with the average of the two surrounding values in a series of missing values.
+    Can be used to fill NA values with the average of the two surrounding values in a series of missing values,
+    or standalone value (specified with series argument).
     Note: Currently only tested if one continuous series of non numeric values exists in the specified col.
-    Also assumes valid value exists after the series of NaNs.
+    Assumes valid value exists after the series of NaNs.
     '''
     indices = df[df[col].isnull()].index.values
-    val_1 = df[col].iloc[min(indices) - 1]
-    val_2 = df[col].iloc[max(indices) + 1]
-    replace = (val_1 + val_2) / 2
-    df[col].fillna(replace, inplace=True)
+    if len(indices) != 0:
+        if series == True:
+            if ind_loc == 'iloc':
+                val_1 = df[col].iloc[min(indices) - 1]
+                val_2 = df[col].iloc[max(indices) + 1]
+            else:
+                val_1 = df[col].loc[min(indices) - 1]
+                val_2 = df[col].loc[max(indices) + 1]
+            replace = (val_1 + val_2) / 2
+            df[col].fillna(replace, inplace=True)
+        else:
+            for row in series:
+                df.loc[row, col] = (df.loc[row - 1, col] +
+                                    df.loc[row + 1, col]) / 2
     return df

@@ -22,8 +22,8 @@ threshold = 450
 '''
 Import scripts from other .py files
 '''
-from reg_model_class import reg_model
-from data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround
+from src.reg_model_class import reg_model
+from src.data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround
 
 
 def state_plot(state, df):
@@ -128,24 +128,30 @@ def generate_prediction_df(level, total_x, total_y, predictions=21):
             pred_df.iloc[row, col] = pred_df.iloc[row - 1, col + 1]
     #Part 3: Fills in rest of time lagged values for future t values, predicting based on prior predictions
     fill_diag_and_predictions = fill_diagonals(
-        pred_df, y_pred.loc[:39], rf_model.model, start_row=row_start, n_interval=21)
+        pred_df, y_pred.loc[:45], rf_model.model, start_row=row_start, n_interval=21)
     pred_df = fill_diag_and_predictions[0]
     pred_y = fill_diag_and_predictions[1][-pred_df.shape[0]:]
 #     pred_y = fill_diagonals(pred_df,y_pred, rf_model.model, n_interval = 21)[1][-pred_df.shape[0]:]
     return pred_df, pred_y
 
-def state_analysis(covid_df, state):
+
+def state_analysis(covid_df, state='New York', print_err=False):
+    '''
+    Produces random forest model for specified state, returns tuple of model and time series dataframe
+    Note: This class is intended for loading training data, use other_state class 
+    from State_Comparison.py for prediction and insights on other states
+    '''
     mask1 = (covid_df['state'] == state)
     state_df = covid_df[mask1]
     y = state_df.pop('New_Cases_per_pop')
     X = state_df.iloc[:, 1: -1]
 
     #Calculate moving average, use as target variable instead of raw new cases/pop
-    smooth_x, smooth_y = create_spline(X['days_elapsed'], y)
+    smooth_x, smooth_y = create_spline(X['days_elapsed'], y, day_delay=0)
     mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
     mov_avg_df.columns = ('days_elapsed', 'Daily New Cases')
     state_df = replace_with_moving_averages(
-        state_df, state_df.columns[2:-1], day_delay=3)
+        state_df, state_df.columns[2:-1], day_delay=10)
 
     #Mask to limit start of moving average dataframe to when the number of daily new cases reaches threshold
     mask_mov_avg = (mov_avg_df['Daily New Cases'] >= threshold) | (
@@ -154,25 +160,24 @@ def state_analysis(covid_df, state):
     revised_df = state_df.merge(mov_avg_df, on='days_elapsed').iloc[:, 1:]
     fill_na_with_surround(revised_df, 'driving')
 
-    #Only one state is currently considered in this study, no need to compare pop_density
-    revised_df.drop('pop_density', axis=1, inplace=True)
-
     #Create time series dataframe, fit it into model and evaluate
     values = revised_df.values
+    num_cols = len(revised_df.columns)
     ts_frame_data = series_to_supervised(values, revised_df.columns, 21, 1)
     ts_frame_data = ts_frame_data.iloc[:,
-                                       8:-5:9].join(ts_frame_data.iloc[:, -9:])
+                                       num_cols-1:-num_cols + 1:num_cols].join(ts_frame_data.iloc[:, -num_cols:])
     ts_frame_data.index.name = state
     ts_y = ts_frame_data.pop('Daily New Cases(t)')
     ts_x = ts_frame_data
     rf_model = reg_model(ts_x, ts_y)
     rf_model.rand_forest(n_trees=100)
-    rf_model.evaluate_model(print_err_metric=True)
-    return rf_model, ts_frame_data
+    rf_model.evaluate_model(print_err_metric=print_err)
+    return rf_model, ts_x, ts_y
+
 
 if __name__ == '__main__':
     covid_df = load_and_clean_data()
-    NY_rf, NY_ts_df = state_analysis(covid_df, state = 'New York')
-    MN_rf, MN_ts_df = state_analysis(covid_df, state = 'Minnesota')
+    NY_rf, NY_ts_df, NY_ts_y = state_analysis(
+        covid_df, state='New York', print_err=True)
 
     #Plots in notebooks/EDA.ipynb
