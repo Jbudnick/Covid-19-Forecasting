@@ -118,8 +118,6 @@ https://github.com/nytimes/covid-19-data/blob/master/us-states.csv
 
 https://worldpopulationreview.com/states/
 
-https://worldpopulationreview.com/states/states-by-area/
-
 https://www.apple.com/covid19/mobility
 
 https://www.google.com/covid19/mobility/index.html?hl=en 

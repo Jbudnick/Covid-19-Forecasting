@@ -1,162 +1,227 @@
+from src.reg_model_class import reg_model
+from src.data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
+from Misc_functions import series_to_supervised
+
+
+import pandas as pd
 from pandas.plotting import register_matplotlib_converters
-pop_density = covid_df[['state', 'pop_density']].drop_duplicates()
-NY_pop_density = pop_density[(
-    pop_density['state'] == 'New York')]['pop_density'].values[0]
+
+class Comparable_States(object):
+    '''
+    To get predictions on a state, similar states in population density  will be needed to compare. Use the
+    non-moving average covid_df for import - a moving average will be applied automatically.
+    This class generates and stores a dataframe of states, population densities, and Recovery Factor*
+    '''
+
+    def __init__(self):
+        self.master_pop_density_df = self.make_master_pop_dens_df()
+
+    def make_master_pop_dens_df(self, most_recent_day=104):
+        covid_df = load_and_clean_data()
+        all_states = covid_df['state'].unique()
+        pop_density = covid_df[['state', 'pop_density']].drop_duplicates()
+        pop_density_df = pop_density.set_index('state')
+        self.master_covid_df = pd.DataFrame(
+            get_moving_avg_df(covid_df, state=all_states[0]))
+        self.master_covid_df['state'] = all_states[0]
+        for state in all_states[1:]:
+            state_df = get_moving_avg_df(covid_df, state=state)
+            state_df['state'] = state
+            self.master_covid_df = self.master_covid_df.append(state_df)
+        self.master_covid_df.rename(
+            columns={'Daily New Cases': 'Daily New Cases (mv avg)'}, inplace=True)
+
+        max_cases = self.master_covid_df[[
+            'state', 'Daily New Cases (mv avg)']].groupby('state').max()
+        recent_cases = self.master_covid_df[self.master_covid_df['days_elapsed'] == most_recent_day][[
+            'state', 'Daily New Cases (mv avg)']]  # .groupby('state').max()
+        recent_cases['Daily New Cases (mv avg)'] = recent_cases['Daily New Cases (mv avg)'].where(
+            recent_cases['Daily New Cases (mv avg)'] > 0.01, 0.01)
+        recent_cases.set_index('state', inplace=True)
+        recent_cases.drop_duplicates(inplace=True)
+
+        Recovery_df = max_cases / recent_cases
+        Recovery_df.rename(
+            columns={'Daily New Cases (mv avg)': 'Recovery Factor'}, inplace=True)
+
+        master_pop_density_df = pop_density_df.merge(
+            Recovery_df, on='state').sort_values('pop_density')
+        master_pop_density_df.sort_values('pop_density', inplace=True)
+        self.master_pop_density_df = master_pop_density_df
+        return self.master_pop_density_df
+
+    def get_similar_states(self, state_to_predict, recovery_factor_min=1.2, pop_density_tolerance=25):
+        self.state_to_predict = state_to_predict
+        '''
+        Recovery Factor is a measure of how well the state has recovered from the pandemic, measured as the greatest
+        number of 7 day moving averages of new cases divided by the most recent 7 day moving average.
+        Will return states that exceed this number and plus or minus the specified popululation density difference
+        to compared state.
+        
+        Can be called automatically using pre-defined parameters by specifying state when initializing. To specify
+        parameters, must be called on objects with them specified after initialization.
+        '''
+        state_pop_dens = self.master_pop_density_df.loc[state_to_predict, 'pop_density']
+        mask1 = self.master_pop_density_df['pop_density'] > state_pop_dens - \
+            pop_density_tolerance
+        mask2 = self.master_pop_density_df['pop_density'] < state_pop_dens + \
+            pop_density_tolerance
+        mask3 = self.master_pop_density_df['Recovery Factor'] > recovery_factor_min
+        return self.master_pop_density_df[mask1 & mask2 & mask3]
 
 
 class Combined_State_Analysis(reg_model):
-
     '''
-    Provide list of state_dfs to combined into one model to create a dataset for training.
-    MUST HAVE AT LEAST 2 STATES IN LIST
+    Provide list of state_dfs to combined into one model to create a dataset for training. Use the Comparable_States
+    class to generate similar states for better results before calling predictions class.
     '''
 
-    def __init__(self, state_list, eval=False):
+    def __init__(self, state_list, print_err=False):
+        register_matplotlib_converters()
         covid_df = load_and_clean_data()
         self.state_list = state_list
         X_df_list = [state_analysis(covid_df, state=state, print_err=False)[
             1] for state in state_list]
         y_df_list = [state_analysis(covid_df, state=state, print_err=False)[
             2] for state in state_list]
-        self.X = X_df_list[0].append(X_df_list[1:])
-        self.y = y_df_list[0].append(y_df_list[1:])
+        if len(X_df_list) == 1:
+            self.X = X_df_list[0]
+            self.y = y_df_list[0]
+        else:
+            self.X = X_df_list[0].append(X_df_list[1:])
+            self.y = y_df_list[0].append(y_df_list[1:])
 
         self.rf = reg_model(self.X, self.y)
         self.rf.rand_forest()
-        self.rf.evaluate_model(
-            print_err_metric=True) if eval == True else self.Compile_rf.evaluate_model()
-            
-def get_day_of_peak(df, target='New_Cases'):
-    top = df.sort_values(target, ascending=False).iloc[0]
-    peak_day = top.loc['days_elapsed']
-    peak_val = top.loc['New_Cases']
-    return peak_day, peak_val
+        self.evaluate = self.rf.evaluate_model(print_err_metric=print_err)
+
+    def print_err(self, print_err):
+        self.rf.evaluate_model(print_err=True)
+
+    def get_feature_importances(self):
+        features = self.rf.X.columns
+        feature_importances = self.rf.model.feature_importances_
+        return pd.DataFrame(feature_importances, index=features)
 
 
-class other_state(object):
+class Predictions(Combined_State_Analysis):
     '''
-    This class is intended to load data for prediction purposes. Unlike 
-    use_new_case_per_capita is False by default for scaling to make units more interpretable when normalizing models
-    mvg_avg_df = replace_with_moving_averages(self.NY_df, self.NY_df.columns[2:-1], day_delay = 3)
-        mvg_avg_df = replace_with_moving_averages(self.df, self)
+    Use results from Comparable_States and Combined_State_Analysis to come up with predictions for state
+    '''
+
+    def __init__(self, covid_df, state_to_predict, similar_states, Comb_St_Analysis):
+        self.state = state_to_predict
+        self.similar_states = similar_states
+        self.similar_df = Comb_St_Analysis.X.copy()
+        self.similar_df['Daily New Cases'] = Comb_St_Analysis.y
+
+        self.pop_densities = self.similar_df['pop_density(t)'].unique()
+        self.State_Analysis_X, self.State_Analysis_y = state_analysis(
+            covid_df, state=state_to_predict, print_err=False)[1], state_analysis(
+            covid_df, state=state_to_predict, print_err=False)[2]
+
+    def get_social_distancing_estimates(self, State_Compile, analysis=False):
         '''
-
-    def __init__(self, state, per_capita=False, use_mvg_avg=True):
-
-        self.state = state
-        self.pop_density = pop_density[(
-            pop_density['state'] == state)]['pop_density'].values[0]
-        if per_capita == True:
-            covid_df = load_and_clean_data(new_cases_per_pop=True)
-            self.df = covid_df[covid_df['state'] == state]
-            self.NY_df = covid_df[covid_df['state'] == 'New York']
-            if use_mvg_avg == True:
-                self.df = self.apply_moving_avgs(
-                    self.df, ['New_Cases_per_pop'])
-                self.df = self.apply_moving_avgs(
-                    self.df, self.df.columns[2: -1], day_delay=3)
-                self.NY_df = self.apply_moving_avgs(self.NY_df, ['New_Cases'])
-                self.NY_df = self.apply_moving_avgs(
-                    self.NY_df, self.NY_df.columns[2: -1], day_delay=3)
-            self.y = self.df['New_Cases_per_pop']
-            self.NY_data_y = self.NY_df['New_Cases_per_pop']
-        else:
-            covid_df = load_and_clean_data(new_cases_per_pop=False)
-            self.df = covid_df[covid_df['state'] == state]
-            self.NY_df = covid_df[covid_df['state'] == 'New York']
-            if use_mvg_avg == True:
-                self.df = self.apply_moving_avgs(self.df, ['New_Cases'])
-                self.df = self.apply_moving_avgs(
-                    self.df, self.df.columns[2: -1], day_delay=3)
-                self.NY_df = self.apply_moving_avgs(self.NY_df, ['New_Cases'])
-                self.NY_df = self.apply_moving_avgs(
-                    self.NY_df, self.NY_df.columns[2: -1], day_delay=3)
-            self.y = self.df['New_Cases']
-            self.NY_data_y = self.NY_df['New_Cases']
-
-        self.X = self.df['days_elapsed']
-        self.NY_data_X = self.NY_df['days_elapsed']
-
-    def pop_dens_scale(self):
-        self.pop_scale = pop_density[(pop_density['state'] == 'New York')]['pop_density'].values[0] / \
-            pop_density[(pop_density['state'] == self.state)
-                        ]['pop_density'].values[0]
-        return self.pop_scale
-
-    def apply_moving_avgs(self, df, cols, day_delay=0):
+        This method gets the minimum and maximum social distancing levels for all states in the training set based
+        on the maximum and minimum amounts observed on the training interval.
         '''
-        replace_with_moving_averages(
-        Minnesota_Analysis.NY_df, Minnesota_Analysis.NY_df.columns[2:-1], day_delay=3)
-        '''
-        mvg_avg_df = replace_with_moving_averages(
-            df, cols, xcol='days_elapsed', day_delay=0)
-        return mvg_avg_df
+        min_vals = State_Compile.X.min(
+        ).loc['retail_and_recreation(t)':'driving(t)']
+        max_vals = State_Compile.X.max(
+        ).loc['retail_and_recreation(t)':'driving(t)']
+        max_SD = list(min_vals[:5])
+        max_SD.extend([max_vals[5], min_vals[6]])
+        min_SD = list(max_vals[:5])
+        min_SD.extend([min_vals[5], max_vals[6]])
+        if analysis == False:
+            return min_SD, max_SD
+        if analysis == True:
+            high, low = Prediction_Insights.get_social_distancing_estimates()
+            columns = ['Retail/Recreation %', 'Grocery/Pharmacy %', 'Parks %',
+                       'Transit Stations %', 'Workplaces %', 'Residential %', 'Driving %']
+            SD_Table = round(pd.DataFrame(
+                [np.array(high), np.array(low)], columns=columns) * 100, 2)
+            SD_Table[''] = ['Low', 'High']
+            SD_Table.set_index('', inplace=True)
+            return SD_Table
 
-    def normalize_to_NY(self, x_mod_adj):
-        '''        
-        Currently determined by visual inspection of plots:
-        x_mod is the number of days the virus infection appears to be behind NY
-        y_mod is a number subtracted from the density scale to normalize peaks/shape of data to match NY.
-        '''
-        self.x_mod = get_day_of_peak(self.df)[0] + x_mod_adj
-        self.y_scale = get_day_of_peak(
-            self.NY_df)[1] / get_day_of_peak(self.df)[1]
-        self.day_diff = get_day_of_peak(
-            self.df)[0] - get_day_of_peak(self.NY_df)[0] + x_mod_adj
-
-    def plot_vs_NY(self, x_mod_adj=0, axis='Date', save=False):
-        NY_peak_day = 55
-        register_matplotlib_converters()
-
-        fig, ax = plt.subplots(figsize=(12, 6))
-        if axis == 'Date':
-            NY_X = self.NY_data_X.apply(convert_to_date)
-            state_X = self.X.apply(convert_to_date)
-        elif axis == 'Days Since Peak of Outbreak':
-            self.normalize_to_NY(x_mod_adj=x_mod_adj)
-            NY_X = self.NY_data_X - NY_peak_day
-            state_X = self.X - self.x_mod
-            ax.annotate("*X - Shifted Back {0:.{1}f} days\n*y - Scaled {2:.{3}f} times".format(self.day_diff, 0, self.y_scale, 1),
-                        xy=(0.1, 0.72), xycoords='figure fraction')
-        else:
-            NY_X = self.NY_data_X
-            state_X = self.X
-
-        ax.plot(NY_X, self.NY_data_y, label='New York', c='red')
-#         ax.legend(loc = 2)
-        ax.set_title('Covid-19 New Cases Comparison (Weekly Average)')
-        ax.set_xlabel(axis)
-        ax.set_ylabel('NY Daily New Cases')
-
-        ax2 = ax.twinx()
-        ax2.plot(state_X, self.y, label=self.state + '*')
-#         ax2.legend(loc = 1)
-        ax2.set_ylabel('{} Daily Cases'.format(self.state))
-        h1, l1 = ax.get_legend_handles_labels()
-        h2, l2 = ax2.get_legend_handles_labels()
-        ax.legend(h1 + h2, l1 + l2, loc=2)
-        ax2.grid(None)
-        fig.tight_layout()
-
-        if save != False:
+    def plot_similar_states(self, save=None):
+        #Plots all states in training and test range - assumes all states have unique population densities
+        fig, ax = plt.subplots(figsize=(10, 6))
+        for i, pop_density in enumerate(self.pop_densities):
+            state_df = self.similar_df[self.similar_df['pop_density(t)']
+                                       == pop_density]
+            x = state_df.loc[:, 'days_elapsed(t)']
+            y = state_df.loc[:, 'Daily New Cases']
+            ax.plot(x.apply(convert_to_date), y,
+                    label=State_Compile.state_list[i])
+            ax.legend()
+        ax.set_title(
+            'States Similar to {} in Population Density'.format(self.state))
+        ax.set_xlabel('Date')
+        ax.set_ylabel('New Cases/Day Per 1M Pop')
+        fig.autofmt_xdate(rotation=45)
+        if save != None:
             fig.savefig(save)
 
-    def scale_state_to_NY(self):
-        '''
-        In order to get insight as to how the specified state should aim for social distancing, the data
-        will be scaled up to numbers for predictions with NY's random forest, then scaled back down for
-        interpretable estimates.
-        '''
-        fill_na_with_surround(self.df, 'driving', ind_loc='loc')
-        self.df['New_Cases'] = (self.df['New_Cases'] *
-                                self.y_scale) / (self.pop_density)
-        self.df['days_elapsed'] = self.df['days_elapsed'] - self.x_mod
-        self.df.drop('state', axis=1, inplace=True)
-        self.df.rename(columns={'New_Cases': 'Daily New Cases'}, inplace=True)
-        self.ts_df = series_to_supervised(
-            self.df.values, self.df.columns, 21, 1)
-        self.ts_df = self.ts_df.iloc[:, 8:-5:9].join(self.ts_df.iloc[:, -9:])
-        self.ts_df.index.name = self.state
+    def plot_pred_vs_actual(self, save=None):
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
+            convert_to_date), State_Compile.rf.model.predict(self.State_Analysis_X), label='Model Predictions')
+        ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
+            convert_to_date), self.State_Analysis_y.values, label='Actually  Observed')
+        ax.set_ylim(0)
+        ax.legend()
+        ax.set_title('Model Performance for {}'.format(self.state))
+        ax.set_xlabel('Date')
+        ax.set_ylabel('New Cases/Day Per 1M Pop')
+        fig.autofmt_xdate(rotation=45)
+        if save != None:
+            fig.savefig(save)
 
-    def scale_back_to_state(self):
-        pass
+    def forecast_to_future(self, save=None):
+        min_SD, max_SD = self.get_social_distancing_estimates()
+        high_pred = generate_prediction_df(
+            max_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=State_Compile.rf)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        labels = ['High Social Distancing', 'Low Social Distancing']
+        x = high_pred[0]['days_elapsed(t)']
+        y = high_pred[1]
+        ax.plot(x[-len(y):].apply(convert_to_date),
+                y, label='High Social Distancing')
+
+        low_pred = generate_prediction_df(
+            min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=State_Compile.rf)
+        x = low_pred[0]['days_elapsed(t)']
+        y = low_pred[1]
+        ax.plot(x[-len(y):].apply(convert_to_date),
+                y, label='Low Social Distancing')
+
+        ax.legend()
+        ax.set_title('Future Predicted Daily New Cases'.format(self.state))
+        ax.set_xlabel('Date')
+        ax.set_ylabel('New Cases/Day Per 1M Pop')
+        fig.autofmt_xdate(rotation=0)
+        if save != None:
+            fig.savefig(save)
+
+def state_analysis(covid_df, state='New York', print_err=False):
+    '''
+    Produces random forest model for specified state, returns tuple of model and time series dataframe
+    Note: This class is intended for loading training data, use other_state class 
+    from State_Comparison.py for prediction and insights on other states
+    '''
+    revised_df = get_moving_avg_df(covid_df, state=state)
+    #Create time series dataframe, fit it into model and evaluate
+    values = revised_df.values
+    num_cols = len(revised_df.columns)
+    ts_frame_data = series_to_supervised(values, revised_df.columns, 21, 1)
+    ts_frame_data = ts_frame_data.iloc[:,
+                                        num_cols-1:-num_cols + 1:num_cols].join(ts_frame_data.iloc[:, -num_cols:])
+    ts_frame_data.index.name = state
+    ts_y = ts_frame_data.pop('Daily New Cases(t)')
+    ts_x = ts_frame_data
+    rf_model = reg_model(ts_x, ts_y)
+    rf_model.rand_forest(n_trees=100)
+    rf_model.evaluate_model(print_err_metric=print_err)
+    return rf_model, ts_x, ts_y
