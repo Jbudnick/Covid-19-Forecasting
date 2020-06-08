@@ -1,9 +1,10 @@
 from src.reg_model_class import reg_model
 from src.data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
-from Misc_functions import series_to_supervised
+from src.Misc_functions import series_to_supervised, generate_prediction_df
 
-
+import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from pandas.plotting import register_matplotlib_converters
 
 class Comparable_States(object):
@@ -112,6 +113,7 @@ class Predictions(Combined_State_Analysis):
     def __init__(self, covid_df, state_to_predict, similar_states, Comb_St_Analysis):
         self.state = state_to_predict
         self.similar_states = similar_states
+        self.State_Compile = Comb_St_Analysis
         self.similar_df = Comb_St_Analysis.X.copy()
         self.similar_df['Daily New Cases'] = Comb_St_Analysis.y
 
@@ -120,14 +122,14 @@ class Predictions(Combined_State_Analysis):
             covid_df, state=state_to_predict, print_err=False)[1], state_analysis(
             covid_df, state=state_to_predict, print_err=False)[2]
 
-    def get_social_distancing_estimates(self, State_Compile, analysis=False):
+    def get_social_distancing_estimates(self, analysis=False):
         '''
         This method gets the minimum and maximum social distancing levels for all states in the training set based
         on the maximum and minimum amounts observed on the training interval.
         '''
-        min_vals = State_Compile.X.min(
+        min_vals = self.similar_df.min(
         ).loc['retail_and_recreation(t)':'driving(t)']
-        max_vals = State_Compile.X.max(
+        max_vals = self.similar_df.max(
         ).loc['retail_and_recreation(t)':'driving(t)']
         max_SD = list(min_vals[:5])
         max_SD.extend([max_vals[5], min_vals[6]])
@@ -136,38 +138,38 @@ class Predictions(Combined_State_Analysis):
         if analysis == False:
             return min_SD, max_SD
         if analysis == True:
-            high, low = Prediction_Insights.get_social_distancing_estimates()
+            high, low = max_SD, min_SD
             columns = ['Retail/Recreation %', 'Grocery/Pharmacy %', 'Parks %',
                        'Transit Stations %', 'Workplaces %', 'Residential %', 'Driving %']
             SD_Table = round(pd.DataFrame(
                 [np.array(high), np.array(low)], columns=columns) * 100, 2)
-            SD_Table[''] = ['Low', 'High']
+            SD_Table[''] = ['High', 'Low']
             SD_Table.set_index('', inplace=True)
             return SD_Table
 
     def plot_similar_states(self, save=None):
-        #Plots all states in training and test range - assumes all states have unique population densities
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(14, 7))
         for i, pop_density in enumerate(self.pop_densities):
             state_df = self.similar_df[self.similar_df['pop_density(t)']
                                        == pop_density]
             x = state_df.loc[:, 'days_elapsed(t)']
             y = state_df.loc[:, 'Daily New Cases']
             ax.plot(x.apply(convert_to_date), y,
-                    label=State_Compile.state_list[i])
+                    label=self.similar_states[i])
             ax.legend()
         ax.set_title(
             'States Similar to {} in Population Density'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
-        fig.autofmt_xdate(rotation=45)
+        fig.autofmt_xdate(rotation=30)
+        fig.tight_layout()
         if save != None:
             fig.savefig(save)
 
     def plot_pred_vs_actual(self, save=None):
-        fig, ax = plt.subplots(figsize=(12, 6))
+        fig, ax = plt.subplots(figsize=(14, 7))
         ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), State_Compile.rf.model.predict(self.State_Analysis_X), label='Model Predictions')
+            convert_to_date), self.State_Compile.rf.model.predict(self.State_Analysis_X), label='Model Predictions')
         ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
             convert_to_date), self.State_Analysis_y.values, label='Actually  Observed')
         ax.set_ylim(0)
@@ -175,15 +177,16 @@ class Predictions(Combined_State_Analysis):
         ax.set_title('Model Performance for {}'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
-        fig.autofmt_xdate(rotation=45)
+        fig.autofmt_xdate(rotation=30)
+        fig.tight_layout()
         if save != None:
             fig.savefig(save)
 
     def forecast_to_future(self, save=None):
         min_SD, max_SD = self.get_social_distancing_estimates()
         high_pred = generate_prediction_df(
-            max_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=State_Compile.rf)
-        fig, ax = plt.subplots(figsize=(12, 6))
+            max_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
+        fig, ax = plt.subplots(figsize=(14, 7))
         labels = ['High Social Distancing', 'Low Social Distancing']
         x = high_pred[0]['days_elapsed(t)']
         y = high_pred[1]
@@ -191,7 +194,7 @@ class Predictions(Combined_State_Analysis):
                 y, label='High Social Distancing')
 
         low_pred = generate_prediction_df(
-            min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=State_Compile.rf)
+            min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
         x = low_pred[0]['days_elapsed(t)']
         y = low_pred[1]
         ax.plot(x[-len(y):].apply(convert_to_date),
@@ -201,7 +204,8 @@ class Predictions(Combined_State_Analysis):
         ax.set_title('Future Predicted Daily New Cases'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
-        fig.autofmt_xdate(rotation=0)
+        fig.autofmt_xdate(rotation=30)
+        fig.tight_layout()
         if save != None:
             fig.savefig(save)
 
