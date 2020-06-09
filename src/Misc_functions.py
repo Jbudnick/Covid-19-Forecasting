@@ -60,15 +60,17 @@ def fill_diagonals(df, preds, model, start_row=31, n_interval=21):
 def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
     '''
     Generates a pandas Dataframe out into the future. Uses predictions with time lags on future predictions.
+
     INPUT:
-    level: 'High', 'Medium', or 'Low' or custom list of social distancing parameters
-    total_x: Feature matrix (not including target) with all features and time series lags included
-    total_y: Target values from total_x
-    rf: Random Forest Model
-    Predictions: Time lagged features to predict out toward future
+        level: 'High', 'Medium', or 'Low' or custom list of social distancing parameters
+        total_x: Feature matrix (not including target) with all features and time series lags included
+        total_y: Target values from total_x
+        rf: Random Forest Model
+        Predictions: Time lagged features to predict out toward future
+        
     OUTPUT:
-    Dataframe with estimated time lags populated and social distancing levels populated
-    Series with estimated target values for each row in dataframe
+        Dataframe with estimated time lags populated and social distancing levels populated
+        Series with estimated target values for each row in dataframe
 
     '''
     #Part 1: Expands time lagged Daily New Cases columns
