@@ -90,9 +90,9 @@ class Combined_State_Analysis(reg_model):
             covid_df = new_df
             covid_df.rename(columns = {'days_since_start': 'days_elapsed'}, inplace = True)
         self.state_list = state_list
-        X_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = False)[
+        X_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = True)[
             1] for state in state_list]
-        y_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = False)[
+        y_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = True)[
             2] for state in state_list]
         if len(X_df_list) == 1:
             self.X = X_df_list[0]
@@ -127,8 +127,8 @@ class Predictions(Combined_State_Analysis):
 
         self.pop_densities = self.similar_df['pop_density(t)'].unique()
         self.State_Analysis_X, self.State_Analysis_y = state_analysis(
-            covid_df, state=state_to_predict, print_err=False, normalize_day=True)[1], state_analysis(
-            covid_df, state=state_to_predict, print_err=False, normalize_day=True)[2]
+            covid_df, state=state_to_predict, print_err=False, normalize_day=False)[1], state_analysis(
+            covid_df, state=state_to_predict, print_err=False, normalize_day=False)[2]
 
     def get_social_distancing_estimates(self, analysis=False):
         '''
@@ -161,7 +161,7 @@ class Predictions(Combined_State_Analysis):
             state_df = self.similar_df[self.similar_df['pop_density(t)']
                                        == pop_density]
             x = state_df.loc[:, 'days_elapsed(t)']
-            y = state_df.loc[:, 'Daily New Cases']
+            y = state_df.loc[:, 'New_Cases_per_pop(t)']
             ax.plot(x.apply(convert_to_date), y,
                     label=self.similar_states[i])
         x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)

@@ -44,9 +44,9 @@ if __name__ == '__main__':
     sim_states_df = Similar_States_Init.get_similar_states(
         state_to_predict=state, recovery_factor_min=1.2, pop_density_tolerance=25)
     similar_states = sim_states_df.index.values
-    State_Compile = Combined_State_Analysis(similar_states, print_err=True, normalize_day = True)
+    State_Compile = Combined_State_Analysis(similar_states, print_err=True, normalize_day = False)
     State_Compile.get_feature_importances().T
     print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
         state, similar_states, state))
-    Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile, normalize = True)
+    Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile, normalize = False)
     #Plots in notebooks/EDA.ipynb

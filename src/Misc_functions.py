@@ -85,8 +85,11 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
     # Part 2: Fills in blank known new cases values
     n_rows = pred_df.shape[0]
     pred_df.fillna(0, inplace=True)
-    row_start = pred_df.shape[0] - \
-        pred_df[pred_df['New_Cases_per_pop(t-1)'] == 0].count()[0]
+    try:
+        row_start = pred_df.shape[0] - pred_df[pred_df['New_Cases_per_pop(t-1)'] == 0].count()[0]
+    except:
+        row_start = pred_df.shape[0] - \
+            pred_df[pred_df['Daily_Cases_per_pop(t-1)'] == 0].count()[0]
     col_start = 20
     new_preds = list(y_pred.values)
     pred_df.iloc[row_start, col_start] = y_pred.values[-1]

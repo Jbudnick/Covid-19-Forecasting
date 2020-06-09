@@ -186,12 +186,15 @@ def get_moving_avg_df(covid_df, state):
 
     #Calculate moving average, use as target variable instead of raw new cases/pop
     smooth_x, smooth_y = create_spline(X['days_elapsed'], y, day_delay=0)
-    if len(smooth_x) == 0 or len(smooth_y) == 0:
-        breakpoint()
+    # if len(smooth_x) == 0 or len(smooth_y) == 0:
+    #     breakpoint()
     mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
     mov_avg_df.columns = ('days_elapsed', 'Daily_Cases_per_pop')
     state_df = replace_with_moving_averages(
         state_df, state_df.columns[2:-1], day_delay=10)
+    #Mask to limit start of moving average dataframe to when the number of daily new cases reaches threshold
+    mask_mov_avg = (mov_avg_df['Daily_Cases_per_pop'] >= 450) | (mov_avg_df['days_elapsed'] > 55)
+    mov_avg_df = mov_avg_df[mask_mov_avg]
 
     revised_df = state_df.merge(mov_avg_df, on='days_elapsed').iloc[:, 1:]
     fill_na_with_surround(revised_df, 'driving')
