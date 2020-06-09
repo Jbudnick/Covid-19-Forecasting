@@ -58,8 +58,21 @@ def fill_diagonals(df, preds, model, start_row=31, n_interval=21):
     return df, new_preds
 
 def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
+    '''
+    Generates a pandas Dataframe out into the future. Uses predictions with time lags on future predictions.
+    INPUT:
+    level: 'High', 'Medium', or 'Low' or custom list of social distancing parameters
+    total_x: Feature matrix (not including target) with all features and time series lags included
+    total_y: Target values from total_x
+    rf: Random Forest Model
+    Predictions: Time lagged features to predict out toward future
+    OUTPUT:
+    Dataframe with estimated time lags populated and social distancing levels populated
+    Series with estimated target values for each row in dataframe
 
+    '''
     #Part 1: Expands time lagged Daily New Cases columns
+
 
     columns = ['days_elapsed(t)', 'retail_and_recreation(t)', 'grocery_and_pharmacy(t)',
                'parks(t)', 'transit_stations(t)', 'workplaces(t)', 'residential(t)', 'driving(t)', 'pop_density(t)']
@@ -68,13 +81,16 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
                  'Medium': [0.6, 0.8, 0.7, 0.7, 0.75, 1.1, 0.7],
                  'Low': [1, 1, 1, 1, 1, 0.9, 1]
                  }
+
     if type(level) != str:
         pred_params = level
     else:
         pred_params = levelDict[level]
+
     pred_df = total_x.copy()
     last_recorded_day = int(pred_df['days_elapsed(t)'].max())
     pop_dens = pred_df['pop_density(t)'].mode().iloc[0]
+
     for i in range(last_recorded_day + 1, last_recorded_day + predictions + 1):
         pred_df_row = pd.DataFrame([i] + pred_params + [pop_dens]).T
         pred_df_row.columns = columns

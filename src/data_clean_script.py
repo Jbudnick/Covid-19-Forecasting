@@ -186,8 +186,6 @@ def get_moving_avg_df(covid_df, state):
 
     #Calculate moving average, use as target variable instead of raw new cases/pop
     smooth_x, smooth_y = create_spline(X['days_elapsed'], y, day_delay=0)
-    # if len(smooth_x) == 0 or len(smooth_y) == 0:
-    #     breakpoint()
     mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
     mov_avg_df.columns = ('days_elapsed', 'Daily_Cases_per_pop')
     state_df = replace_with_moving_averages(

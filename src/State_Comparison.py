@@ -214,7 +214,7 @@ class Predictions(Combined_State_Analysis):
         x = low_pred[0]['days_elapsed(t)']
         y = low_pred[1]
         ax.plot(x[x >= 103].apply(convert_to_date),
-                y[-len(x[x >= 103]):], label='High Public Activity', c = 'brown', ls = '--')
+                y[-len(x[x >= 103]):], label='High Public Activity', c = 'darkred', ls = '--')
 
         ax.legend()
         ax.set_title('Future Predicted Daily New Cases'.format(self.state))
@@ -229,8 +229,6 @@ class Predictions(Combined_State_Analysis):
 def state_analysis(covid_df, state='New York', print_err=False, normalize_day = False, mov_avg = True):
     '''
     Produces random forest model for specified state, returns tuple of model and time series dataframe
-    Note: This class is intended for loading training data, use other_state class 
-    from State_Comparison.py for prediction and insights on other states
     '''
     if normalize_day == True:
         state_dfs = normalize_days([state], covid_df)
@@ -244,6 +242,7 @@ def state_analysis(covid_df, state='New York', print_err=False, normalize_day = 
         revised_df = get_moving_avg_df(covid_df, state=state)
     else:
         revised_df = covid_df.copy()
+        
     #Create time series dataframe, fit it into model and evaluate
     values = revised_df.values
     num_cols = len(revised_df.columns)

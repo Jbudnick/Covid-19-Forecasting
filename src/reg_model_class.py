@@ -36,7 +36,6 @@ class reg_model(object):
         if day_cutoff == 'auto':
             '''
             For grouped datasets that are normalized, this will take the minimum value of the maximums of each state for test set.
-
             '''
             day_cutoff = self.X.groupby('pop_density(t)')['days_elapsed(t)'].max().values.min()
         elif day_cutoff >= self.X['days_elapsed(t)'].max():
@@ -46,27 +45,7 @@ class reg_model(object):
         self.log_trans_y = log_trans_y
         self.X_train, self.X_test, self.y_train, self.y_test = self.X[
             train_mask], self.X[holdout_mask], self.y[train_mask], self.y[holdout_mask]
-        if len(self.X_test) == 0:
-            # breakpoint()
-            pass
         self.error_metric = None
-
-    def lin_reg(self):
-        self.model = LinearRegression()
-        self.model.fit(self.X_train, self.y_train)
-        self.error_metric = 'rmse'
-
-    def log_reg(self):
-        self.model = LogisticRegression()
-        self.model.fit(self.X_train, self.y_train)
-        self.error_metric = 'rmse'
-
-    def ridge_reg(self, alpha=0.5):
-        def optimize_alpha(alpha_list):
-            pass
-        self.model = Ridge(alpha=alpha)
-        self.model.fit(self.X_train, self.y_train)
-        self.error_metric = 'rss'
 
     def rand_forest(self, n_trees=100):
         '''
@@ -95,10 +74,7 @@ class reg_model(object):
         self.error_metric = 'rmse'
 
     def evaluate_model(self, print_err_metric=False):
-        try:
-            self.y_hat = self.model.predict(self.X_test)
-        except:
-            breakpoint()
+        self.y_hat = self.model.predict(self.X_test)
         self.predicted_vals_df = pd.DataFrame(self.y_test)
         self.predicted_vals_df['days_elapsed(t)'] = self.X_test['days_elapsed(t)']
         self.predicted_vals_df['y_hat'] = self.y_hat
