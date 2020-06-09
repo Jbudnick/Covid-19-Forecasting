@@ -157,6 +157,9 @@ class Predictions(Combined_State_Analysis):
 
     def plot_similar_states(self, save=None):
         fig, ax = plt.subplots(figsize=(14, 7))
+        x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)
+        y = self.State_Analysis_y.values
+        ax.plot(x.values, y, label=self.state, ls='--', c = 'steelblue')
         for i, pop_density in enumerate(self.pop_densities):
             state_df = self.similar_df[self.similar_df['pop_density(t)']
                                        == pop_density]
@@ -164,9 +167,6 @@ class Predictions(Combined_State_Analysis):
             y = state_df.loc[:, 'New_Cases_per_pop(t)']
             ax.plot(x.apply(convert_to_date), y,
                     label=self.similar_states[i])
-        x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)
-        y = self.State_Analysis_y.values
-        ax.plot(x.values, y, label=self.state, ls='--')
         ax.axvline(convert_to_date(93), linestyle='-.', lw='0.7',
                 color='black', label='Train/Test Split')
         ax.legend()
@@ -178,14 +178,14 @@ class Predictions(Combined_State_Analysis):
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         if save != None:
-            fig.savefig(save)
+            fig.savefig(save, dpi = 300)
 
     def plot_pred_vs_actual(self, save=None):
         fig, ax = plt.subplots(figsize=(14, 7))
         ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Compile.rf.model.predict(self.State_Analysis_X), label='Model Predictions')
+            convert_to_date), self.State_Compile.rf.model.predict(self.State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
         ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Analysis_y.values, label='Actually  Observed')
+            convert_to_date), self.State_Analysis_y.values, label='Actually  Observed', c = 'steelblue')
         ax.set_ylim(0)
         ax.legend()
         ax.set_title('Model Performance for {}'.format(self.state))
@@ -195,7 +195,7 @@ class Predictions(Combined_State_Analysis):
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         if save != None:
-            fig.savefig(save)
+            fig.savefig(save, dpi = 300)
 
     def forecast_to_future(self, save=None):
         min_SD, max_SD = self.get_social_distancing_estimates()
@@ -207,14 +207,14 @@ class Predictions(Combined_State_Analysis):
         y = high_pred[1]
         x = x[2:]
         ax.plot(x[x <= 103].apply(convert_to_date), y[:len(x[x <= 103])], label = 'Past Data', c = 'black')
-        ax.plot(x[x >= 103].apply(convert_to_date), y[-len(x[x >= 103]):], label= 'High Social Distancing')
+        ax.plot(x[x >= 103].apply(convert_to_date), y[-len(x[x >= 103]):], label= 'Low Public Activity', c = 'darkslategray', ls = '--')
 
         low_pred = generate_prediction_df(
             min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
         x = low_pred[0]['days_elapsed(t)']
         y = low_pred[1]
         ax.plot(x[x >= 103].apply(convert_to_date),
-                y[-len(x[x >= 103]):], label='Low Social Distancing')
+                y[-len(x[x >= 103]):], label='High Public Activity', c = 'brown', ls = '--')
 
         ax.legend()
         ax.set_title('Future Predicted Daily New Cases'.format(self.state))
@@ -224,7 +224,7 @@ class Predictions(Combined_State_Analysis):
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         if save != None:
-            fig.savefig(save)
+            fig.savefig(save, dpi = 300)
 
 def state_analysis(covid_df, state='New York', print_err=False, normalize_day = False, mov_avg = True):
     '''

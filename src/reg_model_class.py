@@ -161,4 +161,4 @@ class reg_model(object):
         ax.set_title('New York COVID-19 New Cases')
         fig.tight_layout()
         if save_name != None:
-            fig.savefig('images/{}'.format(save_name))
+            fig.savefig('images/{}'.format(save_name), dpi = 300)
