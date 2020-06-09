@@ -33,11 +33,22 @@ class reg_model(object):
             self.y = np.log(elim_invalid + 1)
         else:
             self.y = y
+        if day_cutoff == 'auto':
+            '''
+            For grouped datasets that are normalized, this will take the minimum value of the maximums of each state for test set.
+
+            '''
+            day_cutoff = self.X.groupby('pop_density(t)')['days_elapsed(t)'].max().values.min()
+        elif day_cutoff >= self.X['days_elapsed(t)'].max():
+            day_cutoff = self.X['days_elapsed(t)'].max() - 10
         train_mask = self.X['days_elapsed(t)'] < day_cutoff
         holdout_mask = self.X['days_elapsed(t)'] >= day_cutoff
         self.log_trans_y = log_trans_y
         self.X_train, self.X_test, self.y_train, self.y_test = self.X[
             train_mask], self.X[holdout_mask], self.y[train_mask], self.y[holdout_mask]
+        if len(self.X_test) == 0:
+            # breakpoint()
+            pass
         self.error_metric = None
 
     def lin_reg(self):
@@ -84,7 +95,10 @@ class reg_model(object):
         self.error_metric = 'rmse'
 
     def evaluate_model(self, print_err_metric=False):
-        self.y_hat = self.model.predict(self.X_test)
+        try:
+            self.y_hat = self.model.predict(self.X_test)
+        except:
+            breakpoint()
         self.predicted_vals_df = pd.DataFrame(self.y_test)
         self.predicted_vals_df['days_elapsed(t)'] = self.X_test['days_elapsed(t)']
         self.predicted_vals_df['y_hat'] = self.y_hat

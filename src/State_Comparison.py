@@ -1,11 +1,15 @@
 from src.reg_model_class import reg_model
 from src.data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
-from src.Misc_functions import series_to_supervised, generate_prediction_df
+from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from pandas.plotting import register_matplotlib_converters
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import matplotlib.ticker as ticker
 
 class Comparable_States(object):
     '''
@@ -17,7 +21,7 @@ class Comparable_States(object):
     def __init__(self):
         self.master_pop_density_df = self.make_master_pop_dens_df()
 
-    def make_master_pop_dens_df(self, most_recent_day=104):
+    def make_master_pop_dens_df(self,most_recent_day=104):
         covid_df = load_and_clean_data()
         all_states = covid_df['state'].unique()
         pop_density = covid_df[['state', 'pop_density']].drop_duplicates()
@@ -29,21 +33,18 @@ class Comparable_States(object):
             state_df = get_moving_avg_df(covid_df, state=state)
             state_df['state'] = state
             self.master_covid_df = self.master_covid_df.append(state_df)
-        self.master_covid_df.rename(
-            columns={'Daily New Cases': 'Daily New Cases (mv avg)'}, inplace=True)
-
         max_cases = self.master_covid_df[[
-            'state', 'Daily New Cases (mv avg)']].groupby('state').max()
+            'state', 'Daily_Cases_per_pop']].groupby('state').max()
         recent_cases = self.master_covid_df[self.master_covid_df['days_elapsed'] == most_recent_day][[
-            'state', 'Daily New Cases (mv avg)']]  # .groupby('state').max()
-        recent_cases['Daily New Cases (mv avg)'] = recent_cases['Daily New Cases (mv avg)'].where(
-            recent_cases['Daily New Cases (mv avg)'] > 0.01, 0.01)
+            'state', 'Daily_Cases_per_pop']]  # .groupby('state').max()
+        recent_cases['Daily_Cases_per_pop'] = recent_cases['Daily_Cases_per_pop'].where(
+            recent_cases['Daily_Cases_per_pop'] > 0.01, 0.01)
         recent_cases.set_index('state', inplace=True)
         recent_cases.drop_duplicates(inplace=True)
 
         Recovery_df = max_cases / recent_cases
         Recovery_df.rename(
-            columns={'Daily New Cases (mv avg)': 'Recovery Factor'}, inplace=True)
+            columns={'Daily_Cases_per_pop': 'Recovery Factor'}, inplace=True)
 
         master_pop_density_df = pop_density_df.merge(
             Recovery_df, on='state').sort_values('pop_density')
@@ -77,13 +78,21 @@ class Combined_State_Analysis(reg_model):
     class to generate similar states for better results before calling predictions class.
     '''
 
-    def __init__(self, state_list, print_err=False):
+    def __init__(self, state_list, print_err=False, normalize_day = True):
         register_matplotlib_converters()
         covid_df = load_and_clean_data()
+        if normalize_day == True:
+            state_dfs = normalize_days(state_list, covid_df)
+            new_df = state_dfs[0].copy()
+            if len(state_dfs) > 0:
+                for each_df in state_dfs[1:]:
+                    new_df = new_df.append(each_df)
+            covid_df = new_df
+            covid_df.rename(columns = {'days_since_start': 'days_elapsed'}, inplace = True)
         self.state_list = state_list
-        X_df_list = [state_analysis(covid_df, state=state, print_err=False)[
+        X_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = False)[
             1] for state in state_list]
-        y_df_list = [state_analysis(covid_df, state=state, print_err=False)[
+        y_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = False)[
             2] for state in state_list]
         if len(X_df_list) == 1:
             self.X = X_df_list[0]
@@ -91,7 +100,6 @@ class Combined_State_Analysis(reg_model):
         else:
             self.X = X_df_list[0].append(X_df_list[1:])
             self.y = y_df_list[0].append(y_df_list[1:])
-
         self.rf = reg_model(self.X, self.y)
         self.rf.rand_forest()
         self.evaluate = self.rf.evaluate_model(print_err_metric=print_err)
@@ -110,17 +118,17 @@ class Predictions(Combined_State_Analysis):
     Use results from Comparable_States and Combined_State_Analysis to come up with predictions for state
     '''
 
-    def __init__(self, covid_df, state_to_predict, similar_states, Comb_St_Analysis):
+    def __init__(self, covid_df, state_to_predict, similar_states, Comb_St_Analysis, normalize = False):
         self.state = state_to_predict
         self.similar_states = similar_states
         self.State_Compile = Comb_St_Analysis
         self.similar_df = Comb_St_Analysis.X.copy()
-        self.similar_df['Daily New Cases'] = Comb_St_Analysis.y
+        self.similar_df['New_Cases_per_pop(t)'] = Comb_St_Analysis.y
 
         self.pop_densities = self.similar_df['pop_density(t)'].unique()
         self.State_Analysis_X, self.State_Analysis_y = state_analysis(
-            covid_df, state=state_to_predict, print_err=False)[1], state_analysis(
-            covid_df, state=state_to_predict, print_err=False)[2]
+            covid_df, state=state_to_predict, print_err=False, normalize_day=True)[1], state_analysis(
+            covid_df, state=state_to_predict, print_err=False, normalize_day=True)[2]
 
     def get_social_distancing_estimates(self, analysis=False):
         '''
@@ -156,11 +164,17 @@ class Predictions(Combined_State_Analysis):
             y = state_df.loc[:, 'Daily New Cases']
             ax.plot(x.apply(convert_to_date), y,
                     label=self.similar_states[i])
-            ax.legend()
+        x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)
+        y = self.State_Analysis_y.values
+        ax.plot(x.values, y, label=self.state, ls='--')
+        ax.axvline(convert_to_date(93), linestyle='-.', lw='0.7',
+                color='black', label='Train/Test Split')
+        ax.legend()
         ax.set_title(
             'States Similar to {} in Population Density'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         if save != None:
@@ -177,6 +191,7 @@ class Predictions(Combined_State_Analysis):
         ax.set_title('Model Performance for {}'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         if save != None:
@@ -190,32 +205,45 @@ class Predictions(Combined_State_Analysis):
         labels = ['High Social Distancing', 'Low Social Distancing']
         x = high_pred[0]['days_elapsed(t)']
         y = high_pred[1]
-        ax.plot(x[-len(y):].apply(convert_to_date),
-                y, label='High Social Distancing')
+        x = x[2:]
+        ax.plot(x[x <= 103].apply(convert_to_date), y[:len(x[x <= 103])], label = 'Past Data', c = 'black')
+        ax.plot(x[x >= 103].apply(convert_to_date), y[-len(x[x >= 103]):], label= 'High Social Distancing')
 
         low_pred = generate_prediction_df(
             min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
         x = low_pred[0]['days_elapsed(t)']
         y = low_pred[1]
-        ax.plot(x[-len(y):].apply(convert_to_date),
-                y, label='Low Social Distancing')
+        ax.plot(x[x >= 103].apply(convert_to_date),
+                y[-len(x[x >= 103]):], label='Low Social Distancing')
 
         ax.legend()
         ax.set_title('Future Predicted Daily New Cases'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         if save != None:
             fig.savefig(save)
 
-def state_analysis(covid_df, state='New York', print_err=False):
+def state_analysis(covid_df, state='New York', print_err=False, normalize_day = False, mov_avg = True):
     '''
     Produces random forest model for specified state, returns tuple of model and time series dataframe
     Note: This class is intended for loading training data, use other_state class 
     from State_Comparison.py for prediction and insights on other states
     '''
-    revised_df = get_moving_avg_df(covid_df, state=state)
+    if normalize_day == True:
+        state_dfs = normalize_days([state], covid_df)
+        new_df = state_dfs[0]
+        if len(state_dfs) > 1:
+            new_df.append([each_df for each_df in state_dfs[1:]])
+        covid_df = new_df
+        covid_df.rename(
+            columns={'days_since_start': 'days_elapsed'}, inplace=True)
+    if mov_avg == True:
+        revised_df = get_moving_avg_df(covid_df, state=state)
+    else:
+        revised_df = covid_df.copy()
     #Create time series dataframe, fit it into model and evaluate
     values = revised_df.values
     num_cols = len(revised_df.columns)
@@ -223,9 +251,19 @@ def state_analysis(covid_df, state='New York', print_err=False):
     ts_frame_data = ts_frame_data.iloc[:,
                                         num_cols-1:-num_cols + 1:num_cols].join(ts_frame_data.iloc[:, -num_cols:])
     ts_frame_data.index.name = state
-    ts_y = ts_frame_data.pop('Daily New Cases(t)')
+    try:
+        ts_y = ts_frame_data.pop('New_Cases_per_pop(t)')
+    except:
+        ts_y = ts_frame_data.pop('Daily_Cases_per_pop(t)')
     ts_x = ts_frame_data
-    rf_model = reg_model(ts_x, ts_y)
+    if 'state(t)' in ts_x.columns:
+        ts_x.drop('state(t)', axis = 1, inplace = True)
+
+    #If there are any negative values in elapsed, it has been normalized.
+    if ts_x[ts_x['days_elapsed(t)'] <0].shape[0] > 0:
+        rf_model = reg_model(ts_x, ts_y, day_cutoff='auto')
+    else:
+        rf_model = reg_model(ts_x, ts_y)
     rf_model.rand_forest(n_trees=100)
     rf_model.evaluate_model(print_err_metric=print_err)
     return rf_model, ts_x, ts_y
