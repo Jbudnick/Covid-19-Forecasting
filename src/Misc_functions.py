@@ -39,6 +39,9 @@ def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
 
 
 def fill_diagonals(df, preds, model, start_row=31, n_interval=21):
+    '''
+    Used to populate time lagged observations - diagonal on matrix
+    '''
     df.fillna(0, inplace=True)
     n_rows = df.shape[0]
     new_preds = list(preds.values)
@@ -67,7 +70,7 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
         total_y: Target values from total_x
         rf: Random Forest Model
         Predictions: Time lagged features to predict out toward future
-        
+
     OUTPUT:
         Dataframe with estimated time lags populated and social distancing levels populated
         Series with estimated target values for each row in dataframe
@@ -75,7 +78,7 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
     '''
     #Part 1: Expands time lagged Daily New Cases columns
 
-
+    #Columns retail_and_recreation through driving are the only ones that need to be specified - rest are populated automatically
     columns = ['days_elapsed(t)', 'retail_and_recreation(t)', 'grocery_and_pharmacy(t)',
                'parks(t)', 'transit_stations(t)', 'workplaces(t)', 'residential(t)', 'driving(t)', 'pop_density(t)']
 

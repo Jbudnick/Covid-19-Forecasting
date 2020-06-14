@@ -3,14 +3,14 @@
 <p>
 
 # Forecasting the Future of COVID-19 with Social Distancing 
-The question on everyone's mind these days seems to be when will things go back to normal? The United States, as well as the rest of the world, has been hit hard by the COVID-19 pandemic and we are all hoping that the end is in sight. In this study, I attempt to predict the future number of new cases of the virus per day in New York and try to find an end in sight using data of how people are socially distancing.
+The question on everyone's mind these days seems to be when will things go back to normal? The United States, as well as the rest of the world, has been hit hard by the COVID-19 pandemic and we are all hoping that the end is in sight. In this project, I have created a model that will predict a forecast of daily new cases per population for a state currently experiencing the maximum number of cases with different levels of social distancing by drawing a subset of states similar in population density that are further along in recovery and training a model on their data.
 
 ## Data + Cleaning
 
-I primarily used 3 different datasets for this study and combined them into a single DataFrame for analysis and prediction.
+I used 4 different datasets for this study and combined them into a single DataFrame for analysis and prediction.
 
 New York Times: Github Repo of cases/deaths daily per state
-The New York Times offers dataset on the number of cases and deaths by COVID-19 per each state. I created a new column of daily new cases and divided these numbers by the state's population for a fairer comparison from state to state, resulting in new cases per 1 million residents. To smooth out the many spikes in the number of new cases per day, I used a 7 day moving average and used this as the target variable.
+The New York Times offers dataset on the number of cases and deaths by COVID-19 per each state. I created a new column of daily new cases and divided these numbers by the state's population for each state for a fairer comparison from state to state, resulting in new cases per 1 million residents. To smooth out the many spikes in the number of new cases per day, I used a 7 day moving average and used this as the target variable.
 <p>
 <img src="images/Covid_Data.png" width="400">
 <p>
@@ -26,20 +26,23 @@ From Google, I was able to get a massive dataset detailing mobility trends throu
 <img src="images/GoogleData.png" width="1000">
 <p>
 
+World Population Review
+I obtained state population density from the world population review and implemented it into my dataframe in order to create subsets states similar in population density.
+
 # Exploratory Data Analysis
-Although there has been news about a shortage of tests being available for the virus in the USA, the data show a very heavy correlation between deaths and cases for New York, so I decided to focus on new cases instead of deaths, as there is earlier and more data available for cases.
+Although there has been news about a shortage of tests being available for the virus in the USA, the data show a very heavy correlation between deaths and cases for every state that I looked at, so I decided to focus on new cases instead of deaths, as there is data earlier and a greater amount of data available for cases.
 <p>
 <img src="images/DeathVsCases.png" width="600">
 <p>
 
-I was originally going to do a subset of states, but in the interest of time had to specialize in only one. I sorted the data available by the maximum number of daily cases and plotted them. I chose New York because New York was the first to have new cases in the US, and one of the few to have shown a strong negative trend over time at some point in the data.
+My preliminary analysis was focused on the state of New York. I sorted the data available by the maximum number of daily cases and plotted them. I chose New York because this state was the first to have new cases in the US, and one of the few to have shown a strong negative trend over time at some point in the data.
 
 <p>
 <img src="images/Top5States.png">
 <p>
 
 
-When I plotted the data, I noticed that there are numerous spikes in the data whereas the predicted trend should be based on the moving average. Considering this dataset covers a considerable amount of time and data before the outbreak, I decided not to use any training data below the threshold of 100 new daily cases per 1 million population. This is because this data features no new cases and no changes in social distancing. Using the data below the threshold could mislead the model.
+When I plotted the data, I noticed that there are numerous spikes in the data whereas the predicted trend should be based on the moving average. Considering this dataset covers a considerable amount of time and data before the outbreak, I needed to made sure not to use any training data below a certain threshold of new daily cases per 1 million population for each subset of states. This is because this data features no new cases and no changes in social distancing. Using the data below the threshold could mislead the model.
 <p>
 <img src="images/NY_New_100.png">
 <p>
@@ -66,9 +69,11 @@ Something notable is that there seems to be an explosion in activity in the late
 <img src="images/NY_Social_Distance_days.png">
 <p>
 
+After collecting information for New York, I decided to investigate states that are further behind in recovery. One example is Minnesota, which at the time of this writing, is experiencing more new cases per population than ever before. By training a random forest model of a subset of states that are similar in population density as Minnesota and futher along in recovery, I can extract insights that could help Minneosota with the most effective features that are likely to reduce the number of daily new cases in the future.
+
 
 ## Forecasting
-In order to set up a regression model and predict future values, I converted my original dataframe into a time series matrix and I decided to use a prediction of 20 days using the moving average data points as this seemed like a large enough interval to cover any cause-effects between the features and the target that may be lagging behind. The time series ended up with about 188 features in all, so I decided to use a random forest on my model as it can support high dimensionality with high accuracy.
+In order to set up a regression model and predict future values, I converted my original dataframe into a time series matrix and I decided to use a prediction of 21 days using the moving average data points as this seemed like a large enough interval to cover any cause-effects between the features and the target that may be lagging behind. The time series ended up with about 188 features in all, so I decided to use a random forest on my model as it can support high dimensionality with high accuracy.
 
 Feature importances were determined below by summing all previous time series individual feature importances for the 20 day time lag into each specific category. 
 <p>

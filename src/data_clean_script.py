@@ -178,7 +178,11 @@ def fill_na_with_surround(df, col, series=True, ind_loc='iloc'):
                                     df.loc[row + 1, col]) / 2
     return df
 
-def get_moving_avg_df(covid_df, state):
+def get_moving_avg_df(covid_df, state, threshold = 450, days_threshold = 55):
+    '''
+    Creates state specific dataframe. Will exclude values that do not meet the thresholds specified.
+
+    '''
     mask1 = (covid_df['state'] == state)
     state_df = covid_df[mask1]
     y = state_df.pop('New_Cases_per_pop')
@@ -191,7 +195,7 @@ def get_moving_avg_df(covid_df, state):
     state_df = replace_with_moving_averages(
         state_df, state_df.columns[2:-1], day_delay=10)
     #Mask to limit start of moving average dataframe to when the number of daily new cases reaches threshold
-    mask_mov_avg = (mov_avg_df['Daily_Cases_per_pop'] >= 450) | (mov_avg_df['days_elapsed'] > 55)
+    mask_mov_avg = (mov_avg_df['Daily_Cases_per_pop'] >= threshold) | (mov_avg_df['days_elapsed'] > days_threshold)
     mov_avg_df = mov_avg_df[mask_mov_avg]
 
     revised_df = state_df.merge(mov_avg_df, on='days_elapsed').iloc[:, 1:]

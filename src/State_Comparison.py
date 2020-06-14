@@ -207,14 +207,14 @@ class Predictions(Combined_State_Analysis):
         y = high_pred[1]
         x = x[2:]
         ax.plot(x[x <= 103].apply(convert_to_date), y[:len(x[x <= 103])], label = 'Past Data', c = 'black')
-        ax.plot(x[x >= 103].apply(convert_to_date), y[-len(x[x >= 103]):], label= 'Low Public Activity', c = 'darkslategray', ls = '--')
+        ax.plot(x[x >= 103].apply(convert_to_date), y[-len(x[x >= 103]):], label= 'Low Public Activity', c = 'lime', ls = '-.')
 
         low_pred = generate_prediction_df(
             min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
         x = low_pred[0]['days_elapsed(t)']
         y = low_pred[1]
         ax.plot(x[x >= 103].apply(convert_to_date),
-                y[-len(x[x >= 103]):], label='High Public Activity', c = 'darkred', ls = '--')
+                y[-len(x[x >= 103]):], label='High Public Activity', c = 'tomato', ls = '-.')
 
         ax.legend()
         ax.set_title('Future Predicted Daily New Cases'.format(self.state))
@@ -242,7 +242,7 @@ def state_analysis(covid_df, state='New York', print_err=False, normalize_day = 
         revised_df = get_moving_avg_df(covid_df, state=state)
     else:
         revised_df = covid_df.copy()
-        
+
     #Create time series dataframe, fit it into model and evaluate
     values = revised_df.values
     num_cols = len(revised_df.columns)
