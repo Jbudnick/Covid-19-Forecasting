@@ -5,7 +5,7 @@ Import scripts from other .py files
 '''
 from src.State_Comparison import Comparable_States, Combined_State_Analysis, state_analysis, Predictions
 from src.reg_model_class import reg_model
-from src.data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
+from src.data_clean_script import replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
 from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days
 
 import pandas as pd
@@ -38,7 +38,7 @@ def state_plot(state, df):
 if __name__ == '__main__':
     state = 'Minnesota'
 
-    covid_df = load_and_clean_data()
+    covid_df = load_and_clean_data(use_internet = False)
     Similar_States_Init = Comparable_States()
     Similar_States_Init.make_master_pop_dens_df()
     sim_states_df = Similar_States_Init.get_similar_states(

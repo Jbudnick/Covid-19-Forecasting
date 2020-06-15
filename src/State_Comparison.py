@@ -1,5 +1,5 @@
 from src.reg_model_class import reg_model
-from src.data_clean_script import clean_data, replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
+from src.data_clean_script import replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
 from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days
 
 import matplotlib.pyplot as plt
@@ -22,7 +22,7 @@ class Comparable_States(object):
         self.master_pop_density_df = self.make_master_pop_dens_df()
 
     def make_master_pop_dens_df(self,most_recent_day=104):
-        covid_df = load_and_clean_data()
+        covid_df = load_and_clean_data(use_internet = False)
         all_states = covid_df['state'].unique()
         pop_density = covid_df[['state', 'pop_density']].drop_duplicates()
         pop_density_df = pop_density.set_index('state')
@@ -79,8 +79,12 @@ class Combined_State_Analysis(reg_model):
     '''
 
     def __init__(self, state_list, print_err=False, normalize_day = True):
+        '''
+        normalize_day is currently broken
+
+        '''
         register_matplotlib_converters()
-        covid_df = load_and_clean_data()
+        covid_df = load_and_clean_data(use_internet = False)
         if normalize_day == True:
             state_dfs = normalize_days(state_list, covid_df)
             new_df = state_dfs[0].copy()
@@ -98,7 +102,10 @@ class Combined_State_Analysis(reg_model):
             self.X = X_df_list[0]
             self.y = y_df_list[0]
         else:
-            self.X = X_df_list[0].append(X_df_list[1:])
+            try:
+                self.X = X_df_list[0].append(X_df_list[1:])
+            except:
+                breakpoint()
             self.y = y_df_list[0].append(y_df_list[1:])
         self.rf = reg_model(self.X, self.y)
         self.rf.rand_forest()

@@ -14,16 +14,21 @@ def create_spline(x, y, day_delay, t=7):
     return mov_avgs_x, mov_avgs_y[:len(mov_avgs_x) + 1]
 
 
-def clean_data(df, datetime_col=None):
-    clean_df = df.copy()
-    if datetime_col != None:
-        clean_df[datetime_col] = pd.to_datetime(clean_df[datetime_col])
-    return clean_df
+# def clean_data(df, datetime_col=None):
+#     clean_df = df.copy()
+#     if datetime_col != None:
+#         clean_df[datetime_col] = pd.to_datetime(clean_df[datetime_col])
+#     return clean_df
 
 
 def convert_to_date(days_elapsed, original_date=datetime.date(2020, 2, 15)):
     date_result = original_date + datetime.timedelta(days_elapsed)
     return date_result
+
+
+def convert_to_days_elapsed(date, start_date=datetime.date(2020, 2, 15)):
+    days_result = date - start_date
+    return days_result.days
 
 
 def replace_initial_values(df, col_change, val_col):
@@ -56,52 +61,69 @@ def replace_with_moving_averages(df, cols, day_delay, xcol='days_elapsed'):
     return df_ma
 
 
-def load_and_clean_data(new_cases_per_pop=True):
+def load_and_clean_data(use_internet=True, new_cases_per_pop=True):
     '''
-    Arguments: new_cases_per_pop = True
-    Sets up and generates dataframe for analysis 
+    Sets up and returns dataframe for analysis
     If new cases per pop is disabled, will use raw number of new cases instead.
+
+        Parameters:
+                new_cases_per_pop (bool): True or False. Will use per capita new cases instead of raw new cases if True.
+                use_internet (bool): True or False. Will retrieve latest data from the internet if left as True. Otherwise will use local files that have most recently been saved manually.
+
+        Returns:
+                covid_df (df): Dataframe with estimated time lags populated and social distancing levels populated
     '''
 
-    #Import and clean covid data (Cases in 2020)
-    covid_raw_df = pd.read_csv('data/covid-19-data/us-states.csv')
-    covid_df = clean_data(covid_raw_df, datetime_col='date')
-    covid_df.sort_values(['state', 'date'], inplace=True)
-    covid_df['New_Cases'] = covid_df['cases'].diff()
+    #Imports raw data - population density uploaded in cleaning section since based on 2020 and not likely to change
+    if use_internet == True:
+        covid_raw_df = pd.read_csv(
+            'https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv', parse_dates = ['date'])
+        mobility_raw_df = pd.read_csv(
+            'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv?cachebust=694ae9957380f150', low_memory=False, parse_dates=['date'])
+        transp_raw_df = pd.read_csv(
+            'https://covid19-static.cdn-apple.com/covid19-mobility-data/2010HotfixDev17/v3/en-us/applemobilitytrends-2020-06-13.csv')
+    else:
+        covid_raw_df = pd.read_csv(
+            'data/covid-19-data/us-states.csv', parse_dates=['date'])
+        mobility_raw_df = pd.read_csv(
+            'data/Global_Mobility_Report.csv', low_memory=False, parse_dates=['date'])
+        transp_raw_df = pd.read_csv('data/applemobilitytrends-2020-06-01.csv')
+    '''
+    Clean covid data (Cases in 2020)  - From NY Times
+    '''
+    covid_raw_df.sort_values(['state', 'date'], inplace=True)
+    covid_raw_df['New_Cases'] = covid_raw_df['cases'].diff()
 
-    covid_df = replace_initial_values(covid_df, 'state', 'New_Cases')
+    covid_raw_df = replace_initial_values(covid_raw_df, 'state', 'New_Cases')
 
     '''
-    Mobility Data - From Google
-    #The baseline is the median value, for the corresponding day of the week, during the 5-week period Jan 3–Feb 6, 2020
+    Clean Mobility Data - From Google
+    Baseline is the median value, for the corresponding day of the week, during the 5-week period Jan 3–Feb 6, 2020
     https://www.google.com/covid19/mobility/index.html?hl=en
     '''
-
-    mobility_raw_df = pd.read_csv(
-        'data/Global_Mobility_Report.csv', low_memory=False)
     US_mobility_raw_df = mobility_raw_df[(mobility_raw_df['country_region'] == 'United States') & (
         mobility_raw_df['sub_region_1'].isnull() == False) & (mobility_raw_df['sub_region_2'].isnull() == True)]
-    mobility_df = clean_data(US_mobility_raw_df, datetime_col='date')
-    mobility_df.reset_index(inplace=True)
-    mobility_df.drop(['index', 'country_region_code',
-                      'country_region', 'sub_region_2'], axis=1, inplace=True)
+    # mobility_df = clean_data(US_mobility_raw_df, datetime_col='date')
+    mobility_df = US_mobility_raw_df.reset_index()
     mobility_df.rename(columns=lambda x: x.replace(
         '_percent_change_from_baseline', ''), inplace=True)
     mobility_df.rename(columns={'sub_region_1': 'state'}, inplace=True)
     num_cols = ['retail_and_recreation', 'grocery_and_pharmacy',
                 'parks', 'transit_stations', 'workplaces', 'residential']
     mobility_df[num_cols] = mobility_df[num_cols].apply(pd.to_numeric)
+    mobility_df.drop(['index', 'country_region_code',
+                      'country_region', 'sub_region_2'], axis=1, inplace=True)
 
     #Convert to percent of normal
     mobility_df[num_cols] = mobility_df[num_cols].apply(
         lambda x: (x + 100)/100)
     states = list(set(mobility_df['state']))
+
     '''
     Transp data - From Apple
     The CSV file and charts on this site show a relative volume of directions requests per country/region, sub-region or city compared to a baseline volume on January 13th, 2020. We define our day as midnight-to-midnight, Pacific time.
     https://www.apple.com/covid19/mobility 
     '''
-    transp_raw_df = pd.read_csv('data/applemobilitytrends-2020-06-01.csv')
     transp_df = transp_raw_df[(transp_raw_df['geo_type'] == 'sub-region')
                               & (transp_raw_df['region'].isin(states))].copy()
     #Driving is only available transportation type data available for statewide data
@@ -117,19 +139,9 @@ def load_and_clean_data(new_cases_per_pop=True):
 
     mobility_df = mobility_df.merge(
         transp_df, how='inner', on=['date', 'state'])
-    covid_df = mobility_df.merge(covid_df, how='inner', on=['date', 'state'])
+    covid_df = mobility_df.merge(covid_raw_df, how='inner', on=['date', 'state'])
     covid_df.rename(columns={'value': 'driving'}, inplace=True)
-    covid_df.drop(['cases', 'deaths', 'fips'], axis=1, inplace=True)
-
-    #Converts date into days elapsed since outbreak- some functions don't work with datetime objects
-    #February 15th is earliest data
-    min_date = datetime.datetime(2020, 2, 15)
-    covid_df['date'] = covid_df['date'].apply(
-        lambda x: (x.to_pydatetime() - min_date).days)
-    dates = covid_df['date']
-    covid_df.rename(columns={'date': 'days_elapsed'}, inplace=True)
-
-    #Importing state populations and land areas - going to convert cases to new cases per capita for better comparison, implement state density
+    #Importing state populations and land areas implement state density
     state_pops = pd.read_csv('data/pop_by_state.csv',
                              header=1, usecols=['State', 'Pop'])
     state_area = pd.read_csv('data/state_area.csv',
@@ -138,19 +150,27 @@ def load_and_clean_data(new_cases_per_pop=True):
     state_area.rename(columns={'State': 'state'}, inplace=True)
     state_pops = state_pops.merge(state_area, on='state')
     state_pops['pop_density'] = state_pops['Pop'] / state_pops['LandArea']
-
     if new_cases_per_pop == True:
         state_pops['Pop'] = state_pops['Pop'] / 1000000
         covid_df = covid_df.merge(state_pops, on='state')
         covid_df['New_Cases_per_pop'] = covid_df['New_Cases'] / covid_df['Pop']
-        covid_df.drop(['LandArea', 'Pop'], axis=1, inplace=True)
-        covid_df.drop(['New_Cases'], axis=1, inplace=True)
 
-    #2 missing park values; manually fill them in with average of surrounding value
+    #Converts date into days elapsed since Feb 15th
+    covid_df['date'] = covid_df['date'].apply(
+        lambda x: convert_to_days_elapsed(x.date()))
+    covid_df.rename(columns={'date': 'days_elapsed'}, inplace=True)
+
+    #Missing values; manually fill them in with average of surrounding value
     missing_parks_ind = [507, 514, 661, 668,
                          675, 682, 689, 1017, 1024, 1031, 2940]
     covid_df = fill_na_with_surround(
         covid_df, 'parks', series=missing_parks_ind)
+
+    #Include only columns of interest
+    wanted_columns = ['state', 'days_elapsed', 'retail_and_recreation',
+                      'grocery_and_pharmacy', 'parks', 'transit_stations', 'workplaces',
+                      'residential', 'driving', 'pop_density', 'New_Cases_per_pop']
+    covid_df = covid_df.loc[:, wanted_columns]
     return covid_df
 
 
@@ -166,7 +186,10 @@ def fill_na_with_surround(df, col, series=True, ind_loc='iloc'):
         if series == True:
             if ind_loc == 'iloc':
                 val_1 = df[col].iloc[min(indices) - 1]
-                val_2 = df[col].iloc[max(indices) + 1]
+                if max(indices) == max(df.index):
+                    val_2 = val_1
+                else:
+                    val_2 = df[col].iloc[max(indices) + 1]
             else:
                 val_1 = df[col].loc[min(indices) - 1]
                 val_2 = df[col].loc[max(indices) + 1]
