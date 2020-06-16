@@ -1,5 +1,5 @@
 from src.reg_model_class import reg_model
-from src.data_clean_script import replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, get_moving_avg_df
+from src.data_clean_script import replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, convert_to_moving_avg_df
 from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days
 
 import matplotlib.pyplot as plt
@@ -13,24 +13,23 @@ import matplotlib.ticker as ticker
 
 class Comparable_States(object):
     '''
-    To get predictions on a state, similar states in population density  will be needed to compare. Use the
-    non-moving average covid_df for import - a moving average will be applied automatically.
+    To get predictions on a state, similar states in population density  will be needed to compare. 
     This class generates and stores a dataframe of states, population densities, and Recovery Factor*
     '''
 
-    def __init__(self):
+    def __init__(self, covid_df):
         self.master_pop_density_df = self.make_master_pop_dens_df()
+        self.covid_df = covid_df
 
     def make_master_pop_dens_df(self,most_recent_day=104):
-        covid_df = load_and_clean_data(use_internet = False)
-        all_states = covid_df['state'].unique()
-        pop_density = covid_df[['state', 'pop_density']].drop_duplicates()
+        all_states = self.covid_df['state'].unique()
+        pop_density = self.covid_df[['state', 'pop_density']].drop_duplicates()
         pop_density_df = pop_density.set_index('state')
         self.master_covid_df = pd.DataFrame(
             get_moving_avg_df(covid_df, state=all_states[0]))
         self.master_covid_df['state'] = all_states[0]
         for state in all_states[1:]:
-            state_df = get_moving_avg_df(covid_df, state=state)
+            state_df = get_moving_avg_df(self.covid_df, state=state)
             state_df['state'] = state
             self.master_covid_df = self.master_covid_df.append(state_df)
         max_cases = self.master_covid_df[[

@@ -14,20 +14,25 @@ def create_spline(x, y, day_delay, t=7):
         range(int(x.values[0] + t + day_delay), int(x.values[-1] + 2)))
     return mov_avgs_x, mov_avgs_y[:len(mov_avgs_x) + 1]
 
-
-# def clean_data(df, datetime_col=None):
-#     clean_df = df.copy()
-#     if datetime_col != None:
-#         clean_df[datetime_col] = pd.to_datetime(clean_df[datetime_col])
-#     return clean_df
-
-
 def convert_to_date(days_elapsed, original_date=datetime.date(2020, 2, 15)):
+    '''
+        Parameters:
+            days_elapsed (int): Number of days since original_date
+            original_date (datetime.date) 
+        Returns:
+            date_result (datetime.date)
+    '''
     date_result = original_date + datetime.timedelta(days_elapsed)
     return date_result
 
-
 def convert_to_days_elapsed(date, start_date=datetime.date(2020, 2, 15)):
+    '''
+        Parameters:
+            date(datetime.date): Date to convert
+            start_date(datetime.date): Days elapsed start date
+        Returns:
+            days_result.days (int)
+    '''
     days_result = date - start_date
     return days_result.days
 
@@ -204,26 +209,30 @@ def fill_na_with_surround(df, cols = 'all'):
                     df.loc[sub_list, col] = df.loc[sub_list, col].fillna(val_1)
     return df
 
-def get_moving_avg_df(covid_df, state, threshold = 450, days_threshold = 55):
+    # threshold = 450, days_threshold = 55,        #Mask to limit start of moving average dataframe to when the number of daily new cases reaches threshold
+    # mask_mov_avg = (mov_avg_df['Daily_Cases_per_pop'] >= threshold) | (
+    #     mov_avg_df['days_elapsed'] > days_threshold)
+    # mov_avg_df = mov_avg_df[mask_mov_avg]
+
+def convert_to_moving_avg_df(covid_df, states = 'all', SD_delay = 10):
     '''
-    Creates state specific dataframe. Will exclude values that do not meet the thresholds specified.
-
+    Converts dataframe into moving averages instead of raw values.
     '''
-    mask1 = (covid_df['state'] == state)
-    state_df = covid_df[mask1]
-    y = state_df.pop('New_Cases_per_pop')
-    X = state_df.iloc[:, 1: -1]
+    ma_df = pd.DataFrame()
+    if states == 'all':
+        states = covid_df['state'].unique()
+    for state in states:
+        mask1 = (covid_df['state'] == state)
+        state_df = covid_df[mask1]
+        # y = state_df.pop('New_Cases_per_pop')
+        # X = state_df.iloc[:, 0: -1]
 
-    #Calculate moving average, use as target variable instead of raw new cases/pop
-    smooth_x, smooth_y = create_spline(X['days_elapsed'], y, day_delay=0)
-    mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
-    mov_avg_df.columns = ('days_elapsed', 'Daily_Cases_per_pop')
-    state_df = replace_with_moving_averages(
-        state_df, state_df.columns[2:-1], day_delay=10)
-    #Mask to limit start of moving average dataframe to when the number of daily new cases reaches threshold
-    mask_mov_avg = (mov_avg_df['Daily_Cases_per_pop'] >= threshold) | (mov_avg_df['days_elapsed'] > days_threshold)
-    mov_avg_df = mov_avg_df[mask_mov_avg]
-
-    revised_df = state_df.merge(mov_avg_df, on='days_elapsed').iloc[:, 1:]
-    # fill_na_with_surround(revised_df, 'driving')
-    return revised_df
+        #Calculate moving average, use as target variable instead of raw new cases/pop
+        # smooth_x, smooth_y = create_spline(X['days_elapsed'], y, day_delay=0)
+        # mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
+        # mov_avg_df.columns = ('days_elapsed', 'New_Cases_per_pop')
+        state_df = replace_with_moving_averages(state_df, [state_df.columns[-1]], day_delay = 0)
+        state_df = replace_with_moving_averages(state_df, state_df.columns[2:-1], day_delay= SD_delay)
+        # state_df = state_df.merge(mov_avg_df, on='days_elapsed')
+        ma_df = ma_df.append(state_df)
+    return ma_df
