@@ -39,13 +39,11 @@ if __name__ == '__main__':
     state = 'Minnesota'
 
     covid_df = load_and_clean_data(use_internet = True)
-    MA_df = convert_to_moving_avg_df(covid_df)
-
-    # Similar_States = Comparable_States(covid_df)
-    # Similar_States.make_master_pop_dens_df()
-    # sim_states_df = Similar_States.get_similar_states(
-    #     state_to_predict=state, recovery_factor_min=1.2, pop_density_tolerance=25)
-    # similar_states = sim_states_df.index.values
+    covid_df = convert_to_moving_avg_df(covid_df)
+    Similar_States = Comparable_States(covid_df)
+    sim_states_df = Similar_States.get_similar_states(state_to_predict = state, recovery_factor_min=1.5, pop_density_tolerance=25)
+    similar_states = sim_states_df.index.values
+    
     # State_Compile = Combined_State_Analysis(similar_states, print_err=True, normalize_day = False)
     # State_Compile.get_feature_importances().T
     # print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(

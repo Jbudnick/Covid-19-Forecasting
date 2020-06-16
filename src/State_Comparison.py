@@ -13,54 +13,57 @@ import matplotlib.ticker as ticker
 
 class Comparable_States(object):
     '''
-    To get predictions on a state, similar states in population density  will be needed to compare. 
+    To get predictions on a state, similar states in population density will be needed to compare. 
     This class generates and stores a dataframe of states, population densities, and Recovery Factor*
+    
+    *Recovery Factor is a measure of how well the state has recovered from the pandemic, measured as the greatest
+    number of 7 day moving averages of new cases divided by the most recent 7 day moving average.
+    Will return states that exceed this number and plus or minus the specified popululation density difference
+    to compared state.
     '''
 
     def __init__(self, covid_df):
-        self.master_pop_density_df = self.make_master_pop_dens_df()
         self.covid_df = covid_df
+        self.master_pop_density_df = self.make_master_pop_dens_df()
 
-    def make_master_pop_dens_df(self,most_recent_day=104):
+    def make_master_pop_dens_df(self):
+        '''
+        Makes a dataframe of population densities and recovery factors
+        '''
         all_states = self.covid_df['state'].unique()
-        pop_density = self.covid_df[['state', 'pop_density']].drop_duplicates()
+        pop_density = self.covid_df[['state', 'pop_density']]
         pop_density_df = pop_density.set_index('state')
-        self.master_covid_df = pd.DataFrame(
-            get_moving_avg_df(covid_df, state=all_states[0]))
-        self.master_covid_df['state'] = all_states[0]
-        for state in all_states[1:]:
-            state_df = get_moving_avg_df(self.covid_df, state=state)
-            state_df['state'] = state
-            self.master_covid_df = self.master_covid_df.append(state_df)
-        max_cases = self.master_covid_df[[
-            'state', 'Daily_Cases_per_pop']].groupby('state').max()
-        recent_cases = self.master_covid_df[self.master_covid_df['days_elapsed'] == most_recent_day][[
-            'state', 'Daily_Cases_per_pop']]  # .groupby('state').max()
-        recent_cases['Daily_Cases_per_pop'] = recent_cases['Daily_Cases_per_pop'].where(
-            recent_cases['Daily_Cases_per_pop'] > 0.01, 0.01)
+        pop_density_df.loc[:, 'pop_density'] = pop_density_df.apply(lambda x: round(x, 5))
+        pop_density_df.drop_duplicates(inplace = True)
+        
+        max_cases = self.covid_df[['state', 'New_Cases_per_pop']].groupby('state').max()
+        max_cases.drop_duplicates(inplace = True)
+
+        most_recent_day = self.covid_df['days_elapsed'].max()
+        recent_cases = self.covid_df[self.covid_df['days_elapsed'] == most_recent_day][['state', 'New_Cases_per_pop']]
+        #If any state has less than 0.01 recent cases, replaces with 0.01 so a recovery factor will be generated
+        recent_cases['New_Cases_per_pop'] = recent_cases['New_Cases_per_pop'].where(recent_cases['New_Cases_per_pop'] > 0.01, 0.01)
         recent_cases.set_index('state', inplace=True)
         recent_cases.drop_duplicates(inplace=True)
 
         Recovery_df = max_cases / recent_cases
-        Recovery_df.rename(
-            columns={'Daily_Cases_per_pop': 'Recovery Factor'}, inplace=True)
+        Recovery_df.rename(columns={'New_Cases_per_pop': 'Recovery Factor'}, inplace=True)
 
-        master_pop_density_df = pop_density_df.merge(
-            Recovery_df, on='state').sort_values('pop_density')
-        master_pop_density_df.sort_values('pop_density', inplace=True)
-        self.master_pop_density_df = master_pop_density_df
+        self.master_pop_density_df = pop_density_df.merge(Recovery_df, on='state').sort_values('pop_density')
+        self.master_pop_density_df.sort_values('pop_density', inplace=True)
         return self.master_pop_density_df
 
     def get_similar_states(self, state_to_predict, recovery_factor_min=1.2, pop_density_tolerance=25):
         self.state_to_predict = state_to_predict
         '''
-        Recovery Factor is a measure of how well the state has recovered from the pandemic, measured as the greatest
-        number of 7 day moving averages of new cases divided by the most recent 7 day moving average.
-        Will return states that exceed this number and plus or minus the specified popululation density difference
-        to compared state.
-        
-        Can be called automatically using pre-defined parameters by specifying state when initializing. To specify
-        parameters, must be called on objects with them specified after initialization.
+        Gets states similar in population densities to state_to_predict
+
+            Parameters:
+                state_to_predict (str): Specify state to focus on for getting predictions
+                recovery_factor_min (float): Minimum value of recovery to retrieve data for training set
+                pop_density_tolerance (int): Include states that meet recovery_factor_min and are plus or minus this number in population density
+            Returns:
+                DataFrame of states that meet the specified recovery_factor_min and pop_density_tolerance
         '''
         state_pop_dens = self.master_pop_density_df.loc[state_to_predict, 'pop_density']
         mask1 = self.master_pop_density_df['pop_density'] > state_pop_dens - \
@@ -69,7 +72,6 @@ class Comparable_States(object):
             pop_density_tolerance
         mask3 = self.master_pop_density_df['Recovery Factor'] > recovery_factor_min
         return self.master_pop_density_df[mask1 & mask2 & mask3]
-
 
 class Combined_State_Analysis(reg_model):
     '''

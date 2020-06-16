@@ -217,6 +217,13 @@ def fill_na_with_surround(df, cols = 'all'):
 def convert_to_moving_avg_df(covid_df, states = 'all', SD_delay = 10):
     '''
     Converts dataframe into moving averages instead of raw values.
+    
+        Parameters:
+            covid_df (pandas DataFrame)
+            states (list or 'all')
+            SD_delay = 10 (int): A delayed number of days to use for social distancing parameters (10 will be moving average of 10 days ago set on current day)
+        Returns:
+            ma_df (pandas DataFrame): Dataframe of specified states with values converted to moving averages.
     '''
     ma_df = pd.DataFrame()
     if states == 'all':
@@ -224,15 +231,7 @@ def convert_to_moving_avg_df(covid_df, states = 'all', SD_delay = 10):
     for state in states:
         mask1 = (covid_df['state'] == state)
         state_df = covid_df[mask1]
-        # y = state_df.pop('New_Cases_per_pop')
-        # X = state_df.iloc[:, 0: -1]
-
-        #Calculate moving average, use as target variable instead of raw new cases/pop
-        # smooth_x, smooth_y = create_spline(X['days_elapsed'], y, day_delay=0)
-        # mov_avg_df = pd.DataFrame([smooth_x, smooth_y]).T
-        # mov_avg_df.columns = ('days_elapsed', 'New_Cases_per_pop')
         state_df = replace_with_moving_averages(state_df, [state_df.columns[-1]], day_delay = 0)
         state_df = replace_with_moving_averages(state_df, state_df.columns[2:-1], day_delay= SD_delay)
-        # state_df = state_df.merge(mov_avg_df, on='days_elapsed')
         ma_df = ma_df.append(state_df)
     return ma_df
