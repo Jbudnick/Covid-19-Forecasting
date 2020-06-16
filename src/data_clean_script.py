@@ -1,3 +1,4 @@
+import more_itertools as mit
 import pandas as pd
 import numpy as np
 import datetime
@@ -160,45 +161,47 @@ def load_and_clean_data(use_internet=True, new_cases_per_pop=True):
         lambda x: convert_to_days_elapsed(x.date()))
     covid_df.rename(columns={'date': 'days_elapsed'}, inplace=True)
 
-    #Missing values; manually fill them in with average of surrounding value
-    missing_parks_ind = [507, 514, 661, 668,
-                         675, 682, 689, 1017, 1024, 1031, 2940]
-    covid_df = fill_na_with_surround(
-        covid_df, 'parks', series=missing_parks_ind)
-
     #Include only columns of interest
     wanted_columns = ['state', 'days_elapsed', 'retail_and_recreation',
                       'grocery_and_pharmacy', 'parks', 'transit_stations', 'workplaces',
                       'residential', 'driving', 'pop_density', 'New_Cases_per_pop']
     covid_df = covid_df.loc[:, wanted_columns]
+    covid_df = fill_na_with_surround(covid_df)
     return covid_df
 
 
-def fill_na_with_surround(df, col, series=True, ind_loc='iloc'):
+def fill_na_with_surround(df, cols = 'all'):
     '''
-    Can be used to fill NA values with the average of the two surrounding values in a series of missing values,
-    or standalone value (specified with series argument).
-    Note: Currently only tested if one continuous series of non numeric values exists in the specified col.
-    Assumes valid value exists after the series of NaNs.
+    Used to fill NaN values with the average of the two surrounding values in each series of missing values
+    or standalone value. If most recent value for state is NaN, will replicate the most recently known value to all suceeding NaNs.
+    Assumes that each state has a numeric value populated as its initial value.
+
+        Parameters:
+            df (Pandas DataFrame): Dataframe to modify to fill na values with average of surrounding
+            cols (Pandas Series): Columns of df to fill na values
+        Returns:
+            df (Pandas DataFrame): DataFrame with NA values filled for specified cols
     '''
-    indices = df[df[col].isnull()].index.values
-    if len(indices) != 0:
-        if series == True:
-            if ind_loc == 'iloc':
-                val_1 = df[col].iloc[min(indices) - 1]
-                if max(indices) == max(df.index):
-                    val_2 = val_1
+    if cols == 'all':
+        cols = df.columns
+
+    for col in cols:
+        indices = df[df[col].isnull()].index.values
+        if len(indices > 0):
+            consec_list = [list(consecutive)
+                           for consecutive in mit.consecutive_groups(indices)]
+            for sub_list in consec_list:
+                sub_list.insert(0, sub_list[0]-1)
+                sub_list.append(sub_list[-1] + 1)
+                relevant_cols = ['state', col]
+                val_1 = df.loc[sub_list, col].iloc[0]
+                if df.loc[sub_list[0], 'state'] == df.loc[sub_list[-1], 'state']:
+                    val_2 = df.loc[sub_list, col].iloc[-1]
+                    avg_val = (val_1 + val_2)/2
+                    df.loc[sub_list, col] = df.loc[sub_list,
+                                                   col].fillna(avg_val)
                 else:
-                    val_2 = df[col].iloc[max(indices) + 1]
-            else:
-                val_1 = df[col].loc[min(indices) - 1]
-                val_2 = df[col].loc[max(indices) + 1]
-            replace = (val_1 + val_2) / 2
-            df[col].fillna(replace, inplace=True)
-        else:
-            for row in series:
-                df.loc[row, col] = (df.loc[row - 1, col] +
-                                    df.loc[row + 1, col]) / 2
+                    df.loc[sub_list, col] = df.loc[sub_list, col].fillna(val_1)
     return df
 
 def get_moving_avg_df(covid_df, state, threshold = 450, days_threshold = 55):
@@ -222,5 +225,5 @@ def get_moving_avg_df(covid_df, state, threshold = 450, days_threshold = 55):
     mov_avg_df = mov_avg_df[mask_mov_avg]
 
     revised_df = state_df.merge(mov_avg_df, on='days_elapsed').iloc[:, 1:]
-    fill_na_with_surround(revised_df, 'driving')
+    # fill_na_with_surround(revised_df, 'driving')
     return revised_df
