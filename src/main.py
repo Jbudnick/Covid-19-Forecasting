@@ -41,15 +41,17 @@ if __name__ == '__main__':
     covid_df = load_and_clean_data(use_internet = True)
     covid_df = convert_to_moving_avg_df(covid_df)
     Similar_States = Comparable_States(covid_df)
-    sim_states_df = Similar_States.get_similar_states(state_to_predict = state, recovery_factor_min=1.5, pop_density_tolerance=25)
+    sim_states_df = Similar_States.get_similar_states(state_to_predict = state, recovery_factor_min=1.6, pop_density_tolerance=50)
     similar_states = sim_states_df.index.values
-    State_Compile = Combined_State_Analysis(covid_df, similar_states, print_err=True, normalize_day = False)
-    print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
-        state, similar_states, state))
-    feat_importances = State_Compile.get_feature_importances()
-    print(feat_importances)
-    # Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile, normalize = False)
-
-
+    
+    if len(similar_states) == 0:
+        print('No similar states found. Try to expand recovery_factor_min and pop_density_tolerance.')
+    else:
+        State_Compile = Combined_State_Analysis(covid_df, similar_states, print_err=True, normalize_day = False)
+        print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
+            state, similar_states, state))
+        feat_importances = State_Compile.get_feature_importances()
+        print(feat_importances)
+        Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile)
 
     #Plots in notebooks/EDA.ipynb

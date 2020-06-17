@@ -156,7 +156,7 @@ class Predictions(Combined_State_Analysis):
     Use results from Comparable_States and Combined_State_Analysis to come up with predictions for state
     '''
 
-    def __init__(self, covid_df, state_to_predict, similar_states, Comb_St_Analysis, normalize = False):
+    def __init__(self, covid_df, state_to_predict, similar_states, Comb_St_Analysis):
         self.state = state_to_predict
         self.similar_states = similar_states
         self.State_Compile = Comb_St_Analysis
@@ -165,8 +165,8 @@ class Predictions(Combined_State_Analysis):
 
         self.pop_densities = self.similar_df['pop_density(t)'].unique()
         self.State_Analysis_X, self.State_Analysis_y = state_analysis(
-            covid_df, state=state_to_predict, print_err=False, normalize_day=False)[1], state_analysis(
-            covid_df, state=state_to_predict, print_err=False, normalize_day=False)[2]
+            covid_df, state=state_to_predict, print_err=False, normalize_day=False)[0], state_analysis(
+            covid_df, state=state_to_predict, print_err=False, normalize_day=False)[1]
 
     def get_social_distancing_estimates(self, analysis=False):
         '''
