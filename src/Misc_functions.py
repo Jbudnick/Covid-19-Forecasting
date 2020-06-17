@@ -9,6 +9,7 @@ def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
     Frame a time series as a supervised learning dataset.
     Arguments:
         data: Sequence of observations as a list or NumPy array.
+        columns: Columns of data 
         n_in: Number of lag observations as input (X).
         n_out: Number of observations as output (y).
         dropnan: Boolean whether or not to drop rows with NaN values.
@@ -38,9 +39,18 @@ def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
     return agg
 
 
-def fill_diagonals(df, preds, model, start_row=31, n_interval=21):
+def fill_diagonals(df, preds, model, start_row, n_interval=21):
     '''
-    Used to populate time lagged observations - diagonal on matrix
+    Used to populate time lagged observations - diagonal on supervised matrix for time lagged columns
+        Parameters:
+            df (Pandas DataFrame): Dataframe with time lags
+            preds (Series): Predicted values
+            model (Regression Model): Model to use to populate predicted values
+            start_row (int): Row to start replacing with predictions
+            n_interval(int): Number of days of predictions
+        Returns:
+            df (Pandas DataFrame): DataFrame with time lags populated
+            new_preds (Series): Series of new predictions
     '''
     df.fillna(0, inplace=True)
     n_rows = df.shape[0]
@@ -106,11 +116,7 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
     # Part 2: Fills in blank known new cases values
     n_rows = pred_df.shape[0]
     pred_df.fillna(0, inplace=True)
-    try:
-        row_start = pred_df.shape[0] - pred_df[pred_df['New_Cases_per_pop(t-1)'] == 0].count()[0]
-    except:
-        row_start = pred_df.shape[0] - \
-            pred_df[pred_df['Daily_Cases_per_pop(t-1)'] == 0].count()[0]
+    row_start = pred_df.shape[0] - pred_df[pred_df['New_Cases_per_pop(t-1)'] == 0].count()[0]
     col_start = 20
     new_preds = list(y_pred.values)
     pred_df.iloc[row_start, col_start] = y_pred.values[-1]
@@ -119,6 +125,7 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
             pred_df.iloc[row, col] = pred_df.iloc[row - 1, col + 1]
 
     #Part 3: Fills in rest of time lagged values for future t values, predicting based on prior predictions
+    breakpoint()
     fill_diag_and_predictions = fill_diagonals(
         pred_df, y_pred.loc[:45], rf.model, start_row=row_start, n_interval=21)
     pred_df = fill_diag_and_predictions[0]
@@ -132,9 +139,18 @@ def find_nearest(array, value):
 
 def normalize_days(states, covid_df, percent_max=0.25, plot=False, save_x_starts = False):
     '''
+    TBD
     Process covid_df day elapsed column into days elapsed since hitting percent_max of its maximum number of cases/person.
     save_x_starts will return a tuple to translate back into actual date later.
-
+        Parameters:
+            states (list)
+            covid_df (Pandas df): Dataframe used to normalize
+            percent_max (float): Value to use to determine the start of outbreak (0.25 = 25% of maximum new cases is starting point)
+            plot (bool): to create a plotted figure
+            save_x_starts (bool): Whether to save original days elapsed values to convert back later
+        Returns:
+            state_dfs (Pandas DataFrame): Dataframe with added column to normalize days since outbreak
+            x_starts (Series): Original time values before normalization
     '''
     state_dfs = []
     x_starts = []

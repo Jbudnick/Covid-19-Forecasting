@@ -114,11 +114,13 @@ class Combined_State_Analysis(reg_model):
     class to generate similar states for better results before calling predictions class.
     '''
 
-    def __init__(self, covid_df, state_list, print_err=False, normalize_day=False):
+    def __init__(self, covid_df, state_list, min_days = 45, train_test_split = 0.8, print_err=False, normalize_day=False):
         '''
             Parameters:
                 covid_df (Pandas DataFrame): dataset with moving average, etc 
                 state_list (list): List of similar states
+                min_days (int): Filter out days before pandemic
+                train_test_split (float/int): Split between train and test data
                 print_err (bool): To print error metric
                 normalize_day (bool): (currently broken - to fix later)
         '''
@@ -133,8 +135,10 @@ class Combined_State_Analysis(reg_model):
         else:
             self.X = X_df_list[0].append(X_df_list[1:])
             self.y = y_df_list[0].append(y_df_list[1:])
-        X_rf = self.X.drop('state(t)', axis = 1)
-        self.rf = reg_model(X_rf, self.y)
+        self.X_rf = self.X[self.X['days_elapsed(t)'] >= min_days]
+        self.y_rf = self.y[self.X['days_elapsed(t)'] >= min_days]
+        X_rf = self.X_rf.drop('state(t)', axis = 1)
+        self.rf = reg_model(X_rf, self.y_rf, train_test_split)
         self.rf.rand_forest()
         self.evaluate = self.rf.evaluate_model(print_err_metric=print_err)
 
@@ -157,6 +161,15 @@ class Predictions(Combined_State_Analysis):
     '''
 
     def __init__(self, covid_df, state_to_predict, similar_states, Comb_St_Analysis):
+        '''
+            Parameters:
+                covid_df (Pandas DataFrame)
+                state_to_predict (str): State focus for predictions
+                similar_states (list): List of states similar in population density to draw insight from
+                Comb_St_Analysis (Combined_States_Analysis object): Object generated using similar states and regression model
+            Returns:
+                Most methods generate predictions in the form of plots
+        '''
         self.state = state_to_predict
         self.similar_states = similar_states
         self.State_Compile = Comb_St_Analysis

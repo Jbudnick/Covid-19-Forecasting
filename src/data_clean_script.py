@@ -5,7 +5,15 @@ import datetime
 
 def create_spline(x, y, day_delay, t=7):
     '''
-    Use moving average of t points at day_delay
+    Smooths out data values
+        Parameters:
+            x (Series): Independent Variable
+            y (Series): Dependent Variable, will be smoothed
+            day_delay (int): Use smoothed values by this value of days in the past
+            t (int): Average values over this many days per each data value
+        Returns:
+            mov_avgs_x (Series): Takes moving average of x (ignore in most cases)
+            mov_avgs_y (Series): Result of smoothed y
     '''
     y_raw = y.values if day_delay == 0 else y.values[:-day_delay]
     weights = np.repeat(1.0, t) / t
@@ -40,6 +48,12 @@ def convert_to_days_elapsed(date, start_date=datetime.date(2020, 2, 15)):
 def replace_initial_values(df, col_change, val_col):
     '''
     When creating new feature columns using difference of existing columns, this function will replace the initial value in val_col of col_change with a 0.
+        Parameters:
+            df (Pandas DataFrame): Dataframe with difference column added
+            col_change (string): Column name that identifies different subset of values (states)
+            val_col (string): difference column name in df
+        Returns:
+            df (Pandas DataFrame): Same Dataframe with initial values for val_col for differing col_change values populated with 0.
     '''
     prev = None
     for i, st in zip(df.index, df[col_change]):
@@ -53,9 +67,15 @@ def replace_initial_values(df, col_change, val_col):
 
 def replace_with_moving_averages(df, cols, day_delay, xcol='days_elapsed'):
     '''
-    Replaces applicable rows  in columns with weekly average days_past days ago.
-    Day delay is an optional parameter if we want to set the moving average to the weekly moving average x number of days ago.
+    Replaces applicable rows in columns with weekly average day_delay days ago.
 
+        Parameters:
+            df (Pandas DataFrame): DataFrame including columns to replace with moving average values
+            cols (list): List of strings of column names of which to replace with moving average values
+            day_delay (int): Sets moving average to moving average a certain number of days in the past
+            xcol (str): Column name identifying the unchanging independent variable of df
+        Returns:
+            df_ma (Pandas DataFrame): Same Dataframe with cols specified replace with moving average values
     '''
     df_ma = df.copy()
     for col in cols:
@@ -74,7 +94,7 @@ def load_and_clean_data(use_internet=True, new_cases_per_pop=True):
 
         Parameters:
                 new_cases_per_pop (bool): True or False. Will use per capita new cases instead of raw new cases if True.
-                use_internet (bool): True or False. Will retrieve latest data from the internet if left as True. Otherwise will use local files that have most recently been saved manually.
+                use_internet (bool): True or False. Will retrieve latest data from the internet if left as True. Otherwise will use local files that have most recently been saved manually. (Excludes Pop Density Info- will always be imported offline)
 
         Returns:
                 covid_df (df): Dataframe with estimated time lags populated and social distancing levels populated
@@ -209,15 +229,9 @@ def fill_na_with_surround(df, cols = 'all'):
                     df.loc[sub_list, col] = df.loc[sub_list, col].fillna(val_1)
     return df
 
-    # threshold = 450, days_threshold = 55,        #Mask to limit start of moving average dataframe to when the number of daily new cases reaches threshold
-    # mask_mov_avg = (mov_avg_df['Daily_Cases_per_pop'] >= threshold) | (
-    #     mov_avg_df['days_elapsed'] > days_threshold)
-    # mov_avg_df = mov_avg_df[mask_mov_avg]
-
 def convert_to_moving_avg_df(covid_df, states = 'all', SD_delay = 10):
     '''
-    Converts dataframe into moving averages instead of raw values.
-    
+    Converts dataframe into moving averages instead of raw values. Differs from replace_with_moving average in that this function is intended for multiple states.
         Parameters:
             covid_df (pandas DataFrame)
             states (list or 'all')

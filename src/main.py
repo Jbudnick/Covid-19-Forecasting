@@ -21,33 +21,44 @@ matplotlib.rcParams.update({'font.size': 16})
 plt.style.use('fivethirtyeight')
 plt.close('all')
 
-#Define minimum threshold of cases per 1 million people in each state to begin training data on.
-#Threshold is the minimum value at which data is output; Used to reduce misleading predictions
-#(low new cases count and low social distancing parameters before pandemic)
-threshold = 450
-
-def state_plot(state, df):
-    fig, axes = plt.subplots(8, 1, figsize=(12, 15))
-    for i, ax in enumerate(axes, 2):
-        query = df[df['state'] == state]['days_elapsed']
-        x = query.values
-        y = covid_df.loc[query.index].iloc[:, i]
-        ax.plot(x, y)
+def state_plot(states, df):
+    '''
+    Plots data from a list of states into one figure.
+        Parameters:
+            states(list of strings)
+            df (Pandas DataFrame where information to plot is)
+        Returns:
+            plot (fig)
+    '''
+    fig, ax = plt.subplots(1, 1, figsize=(14, 7))
+    for state in states:
+        query = df[df['state'] == state]
+        x = query['days_elapsed'].apply(convert_to_date).values
+        y = query['New_Cases_per_pop'].values
+        ax.plot(x, y, label = state)
+        ax.set_xlabel('Date')
+        ax.set_ylabel('New Daily Cases Per 1M Pop')
+        ax.set_title('Daily New Cases Per State Over Time')
+        ax.legend()
     fig.show()
 
 if __name__ == '__main__':
+    #Specify state to draw predictions for below, and similar state finding parameters
     state = 'Minnesota'
+    min_recovery_factor = 1.7
+    pop_density_tolerance = 25
 
     covid_df = load_and_clean_data(use_internet = True)
     covid_df = convert_to_moving_avg_df(covid_df)
     Similar_States = Comparable_States(covid_df)
-    sim_states_df = Similar_States.get_similar_states(state_to_predict = state, recovery_factor_min=1.6, pop_density_tolerance=50)
+    sim_states_df = Similar_States.get_similar_states(
+        state_to_predict=state, recovery_factor_min=min_recovery_factor, pop_density_tolerance = pop_density_tolerance)
     similar_states = sim_states_df.index.values
     
     if len(similar_states) == 0:
         print('No similar states found. Try to expand recovery_factor_min and pop_density_tolerance.')
     else:
-        State_Compile = Combined_State_Analysis(covid_df, similar_states, print_err=True, normalize_day = False)
+        State_Compile = Combined_State_Analysis(covid_df, similar_states, min_days=60, print_err=True, normalize_day=False)
         print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
             state, similar_states, state))
         feat_importances = State_Compile.get_feature_importances()
