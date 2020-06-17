@@ -44,12 +44,13 @@ def state_plot(states, df):
 
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
-    state = 'Texas'
+    state = 'Alabama'
     min_recovery_factor = 2
     pop_density_tolerance = 50
+    SD_delay = 10
 
-    covid_df = load_and_clean_data(use_internet = True)
-    covid_df = convert_to_moving_avg_df(covid_df)
+    raw_covid_df = load_and_clean_data(use_internet = True)
+    covid_df = convert_to_moving_avg_df(raw_covid_df, SD_delay = SD_delay)
     Similar_States = Comparable_States(covid_df)
     sim_states_df = Similar_States.get_similar_states(
         state_to_predict=state, recovery_factor_min=min_recovery_factor, pop_density_tolerance = pop_density_tolerance)

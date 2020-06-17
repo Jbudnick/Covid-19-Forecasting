@@ -249,7 +249,11 @@ class Predictions(Combined_State_Analysis):
         if save != None:
             fig.savefig(save, dpi = 300)
 
-    def forecast_to_future(self, save=None):
+    def forecast_to_future(self, SD_delay = 10, save=None):
+        '''
+        SD_delay(int): If social distancing parameters were set using a delayed moving average, the level of delay should be entered here 
+        as well, so the prediction matrix is generated with it as well.
+        '''
         min_SD, max_SD = self.get_social_distancing_estimates()
         high_pred = generate_prediction_df(
             max_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
@@ -263,7 +267,7 @@ class Predictions(Combined_State_Analysis):
                 y[-len(x[x >= most_recent_day - 1]):], label='Low Public Activity', c='lime', ls='-.')
 
         low_pred = generate_prediction_df(
-            min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
+            min_SD, self.State_Analysis_X, self.State_Analysis_y, SD_delay = SD_delay, predictions=21, rf=self.State_Compile.rf)
         x = low_pred[0]['days_elapsed(t)']
         y = low_pred[1]
         ax.plot(x[x >= most_recent_day].apply(convert_to_date),

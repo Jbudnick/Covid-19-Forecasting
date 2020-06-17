@@ -70,7 +70,7 @@ def populate_predictions(df, preds, model, start_row, n_interval=21):
     new_preds.append(new_pred)
     return df, new_preds
 
-def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
+def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predictions=21, SD_delay = 10):
     '''
     Generates a pandas Dataframe out into the future. Uses predictions with time lags on future predictions.
 
@@ -79,6 +79,7 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
         total_x: Feature matrix (not including target) with all features and time series lags included
         total_y: Target values from total_x
         rf: Random Forest Model
+        SD_delay (int): If the moving average taken for social distancing was other than 10, this should be populated
         Predictions: Time lagged features to predict out toward future
 
     OUTPUT:
@@ -107,6 +108,7 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
     last_recorded_day = int(pred_df['days_elapsed(t)'].max())
     pop_dens = pred_df['pop_density(t)'].mode().iloc[0]
     future_index = pred_df.index.max()
+    #Insert call function to retrieve moving averages of last SD_delay values here to populate initial SD parameters
 
     for i in range(last_recorded_day + 1, last_recorded_day + predictions + 1):
         pred_df_row = pd.DataFrame([i] + pred_params + [pop_dens]).T
