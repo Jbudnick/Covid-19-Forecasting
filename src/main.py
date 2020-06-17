@@ -44,9 +44,9 @@ def state_plot(states, df):
 
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
-    state = 'Minnesota'
-    min_recovery_factor = 1.7
-    pop_density_tolerance = 25
+    state = 'Texas'
+    min_recovery_factor = 2
+    pop_density_tolerance = 50
 
     covid_df = load_and_clean_data(use_internet = True)
     covid_df = convert_to_moving_avg_df(covid_df)
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     if len(similar_states) == 0:
         print('No similar states found. Try to expand recovery_factor_min and pop_density_tolerance.')
     else:
-        State_Compile = Combined_State_Analysis(covid_df, similar_states, min_days=60, print_err=True, normalize_day=False)
+        State_Compile = Combined_State_Analysis(covid_df, similar_states, min_days=80, print_err=True, normalize_day=False)
         print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
             state, similar_states, state))
         feat_importances = State_Compile.get_feature_importances()

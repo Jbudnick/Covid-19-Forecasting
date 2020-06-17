@@ -218,7 +218,7 @@ class Predictions(Combined_State_Analysis):
             y = state_df.loc[:, 'New_Cases_per_pop(t)']
             ax.plot(x.apply(convert_to_date), y,
                     label=self.similar_states[i])
-        ax.axvline(convert_to_date(93), linestyle='-.', lw='0.7',
+        ax.axvline(convert_to_date(self.State_Compile.rf.train_test_split), linestyle='-.', lw='0.7',
                 color='black', label='Train/Test Split')
         ax.legend()
         ax.set_title(
@@ -233,9 +233,10 @@ class Predictions(Combined_State_Analysis):
 
     def plot_pred_vs_actual(self, save=None):
         fig, ax = plt.subplots(figsize=(14, 7))
-        ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Compile.rf.model.predict(self.State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
-        ax.plot(self.State_Analysis_X['days_elapsed(t)'].apply(
+        State_Analysis_X = self.State_Analysis_X.drop('state(t)', axis = 1)
+        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
+            convert_to_date), self.State_Compile.rf.model.predict(State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
+        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
             convert_to_date), self.State_Analysis_y.values, label='Actually  Observed', c = 'steelblue')
         ax.set_ylim(0)
         ax.legend()
@@ -253,26 +254,27 @@ class Predictions(Combined_State_Analysis):
         high_pred = generate_prediction_df(
             max_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
         fig, ax = plt.subplots(figsize=(14, 7))
-        labels = ['High Social Distancing', 'Low Social Distancing']
         x = high_pred[0]['days_elapsed(t)']
         y = high_pred[1]
-        x = x[2:]
-        ax.plot(x[x <= 103].apply(convert_to_date), y[:len(x[x <= 103])], label = 'Past Data', c = 'black')
-        ax.plot(x[x >= 103].apply(convert_to_date), y[-len(x[x >= 103]):], label= 'Low Public Activity', c = 'lime', ls = '-.')
+        most_recent_day = self.State_Analysis_X['days_elapsed(t)'].max()
+        ax.plot(x[x < most_recent_day].apply(convert_to_date),
+                y[:len(x[x < most_recent_day])], label='Past Data', c='black')
+        ax.plot(x[x >= most_recent_day - 1].apply(convert_to_date),
+                y[-len(x[x >= most_recent_day - 1]):], label='Low Public Activity', c='lime', ls='-.')
 
         low_pred = generate_prediction_df(
             min_SD, self.State_Analysis_X, self.State_Analysis_y, predictions=21, rf=self.State_Compile.rf)
         x = low_pred[0]['days_elapsed(t)']
         y = low_pred[1]
-        ax.plot(x[x >= 103].apply(convert_to_date),
-                y[-len(x[x >= 103]):], label='High Public Activity', c = 'tomato', ls = '-.')
-
+        ax.plot(x[x >= most_recent_day].apply(convert_to_date),
+                y[-len(x[x >= most_recent_day]):], label='High Public Activity', c='tomato', ls='-.')
         ax.legend()
-        ax.set_title('Future Predicted Daily New Cases'.format(self.state))
+        ax.set_title('Future Predicted Daily New Cases for {}'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
         ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
+        plt.show()
         if save != None:
             fig.savefig(save, dpi = 300)

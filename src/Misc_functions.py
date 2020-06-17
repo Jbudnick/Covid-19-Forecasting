@@ -39,7 +39,7 @@ def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
     return agg
 
 
-def fill_diagonals(df, preds, model, start_row, n_interval=21):
+def populate_predictions(df, preds, model, start_row, n_interval=21):
     '''
     Used to populate time lagged observations - diagonal on supervised matrix for time lagged columns
         Parameters:
@@ -55,10 +55,10 @@ def fill_diagonals(df, preds, model, start_row, n_interval=21):
     df.fillna(0, inplace=True)
     n_rows = df.shape[0]
     new_preds = list(preds.values)
-    for row in range(start_row, n_rows)[:]:
+    for row in range(start_row, n_rows):
         new_pred = model.predict(df[row:row + 1])[0]
         new_preds.append(new_pred)
-        j = 0
+        j = 1
         for col in range(n_interval-1, 0, -1):
             try:
                 if df.iloc[row + j, col] == 0:
@@ -103,12 +103,16 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
         pred_params = levelDict[level]
 
     pred_df = total_x.copy()
+    pred_df.drop('state(t)', axis = 1, inplace = True)
     last_recorded_day = int(pred_df['days_elapsed(t)'].max())
     pop_dens = pred_df['pop_density(t)'].mode().iloc[0]
+    future_index = pred_df.index.max()
 
     for i in range(last_recorded_day + 1, last_recorded_day + predictions + 1):
         pred_df_row = pd.DataFrame([i] + pred_params + [pop_dens]).T
         pred_df_row.columns = columns
+        future_index += 1
+        pred_df_row.index = [future_index]
         pred_df = pred_df.append(pred_df_row, sort=False)
 
     y_pred = total_y
@@ -118,16 +122,14 @@ def generate_prediction_df(level, total_x, total_y, rf, predictions=21):
     pred_df.fillna(0, inplace=True)
     row_start = pred_df.shape[0] - pred_df[pred_df['New_Cases_per_pop(t-1)'] == 0].count()[0]
     col_start = 20
-    new_preds = list(y_pred.values)
     pred_df.iloc[row_start, col_start] = y_pred.values[-1]
     for row in range(row_start, n_rows):
         for col in range(col_start - 1, -1, -1):
             pred_df.iloc[row, col] = pred_df.iloc[row - 1, col + 1]
 
     #Part 3: Fills in rest of time lagged values for future t values, predicting based on prior predictions
-    breakpoint()
-    fill_diag_and_predictions = fill_diagonals(
-        pred_df, y_pred.loc[:45], rf.model, start_row=row_start, n_interval=21)
+    fill_diag_and_predictions = populate_predictions(
+        pred_df, y_pred, rf.model, start_row=row_start, n_interval=21)
     pred_df = fill_diag_and_predictions[0]
     pred_y = fill_diag_and_predictions[1][-pred_df.shape[0]:]
     return pred_df, pred_y
