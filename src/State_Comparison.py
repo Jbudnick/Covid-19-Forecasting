@@ -73,53 +73,83 @@ class Comparable_States(object):
         mask3 = self.master_pop_density_df['Recovery Factor'] > recovery_factor_min
         return self.master_pop_density_df[mask1 & mask2 & mask3]
 
+
+def state_analysis(covid_df, state, create_indiv_rf=False, print_err=False, normalize_day=False):
+    '''
+    Generates time series DataFrame for state
+        Parameters:
+            covid_df (Pandas DataFrame)
+            state (str): State to analyze
+            create_indiv_rf (bool): True to create rf model for individual state
+            print_err (bool): for use with the prior parameter, show error metric of rf
+            normalize_day (bool): Currently broken
+        Returns:
+            ts_x (Pandas DataFrame): Time series of x values for specified state
+            ts_y (Pandas DataFrame): Time series of y values for specified state
+    '''
+    #Create time series dataframe, fit it into model and evaluate
+    days_to_lag = 21
+    state_ts_df = covid_df[covid_df['state'] == state].copy()
+    values = state_ts_df.values
+    num_cols = len(state_ts_df.columns)
+    ts_frame_data = series_to_supervised(values, state_ts_df.columns, days_to_lag, 1)
+    ts_frame_data = ts_frame_data.iloc[:,
+                                       num_cols-1:-num_cols + 1:num_cols].join(ts_frame_data.iloc[:, -num_cols:])
+    ts_frame_data.index.name = state
+    ts_y = ts_frame_data.pop('New_Cases_per_pop(t)')
+    ts_x = ts_frame_data
+    if create_indiv_rf == True:
+        ts_x_rf = ts_x.drop('state(t)', axis=1)
+        rf_model = reg_model(ts_x_rf, ts_y)
+        rf_model.rand_forest(n_trees=100)
+        rf_model.evaluate_model(print_err_metric=print_err)
+        return ts_x, ts_y, rf_model
+    else:
+        return ts_x, ts_y
+
+
 class Combined_State_Analysis(reg_model):
     '''
     Provide list of state_dfs to combined into one model to create a dataset for training. Use the Comparable_States
     class to generate similar states for better results before calling predictions class.
     '''
 
-    def __init__(self, state_list, print_err=False, normalize_day = True):
+    def __init__(self, covid_df, state_list, print_err=False, normalize_day=False):
         '''
-        normalize_day is currently broken
-
+            Parameters:
+                covid_df (Pandas DataFrame): dataset with moving average, etc 
+                state_list (list): List of similar states
+                print_err (bool): To print error metric
+                normalize_day (bool): (currently broken - to fix later)
         '''
         register_matplotlib_converters()
-        covid_df = load_and_clean_data(use_internet = False)
-        if normalize_day == True:
-            state_dfs = normalize_days(state_list, covid_df)
-            new_df = state_dfs[0].copy()
-            if len(state_dfs) > 0:
-                for each_df in state_dfs[1:]:
-                    new_df = new_df.append(each_df)
-            covid_df = new_df
-            covid_df.rename(columns = {'days_since_start': 'days_elapsed'}, inplace = True)
+        self.covid_df = covid_df
         self.state_list = state_list
-        X_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = True)[
-            1] for state in state_list]
-        y_df_list = [state_analysis(covid_df, state=state, print_err=False, mov_avg = True)[
-            2] for state in state_list]
+        X_df_list = [state_analysis(self.covid_df, state=state)[0] for state in state_list]
+        y_df_list = [state_analysis(self.covid_df, state=state)[1] for state in state_list]
         if len(X_df_list) == 1:
             self.X = X_df_list[0]
             self.y = y_df_list[0]
         else:
-            try:
-                self.X = X_df_list[0].append(X_df_list[1:])
-            except:
-                breakpoint()
+            self.X = X_df_list[0].append(X_df_list[1:])
             self.y = y_df_list[0].append(y_df_list[1:])
-        self.rf = reg_model(self.X, self.y)
+        X_rf = self.X.drop('state(t)', axis = 1)
+        self.rf = reg_model(X_rf, self.y)
         self.rf.rand_forest()
         self.evaluate = self.rf.evaluate_model(print_err_metric=print_err)
 
     def print_err(self, print_err):
         self.rf.evaluate_model(print_err=True)
 
-    def get_feature_importances(self):
+    def get_feature_importances(self, exclude_time_lag = True):
         features = self.rf.X.columns
         feature_importances = self.rf.model.feature_importances_
-        return pd.DataFrame(feature_importances, index=features)
-
+        feature_importances = pd.DataFrame(feature_importances, features)
+        if exclude_time_lag == True:
+            feat_imp_df = feature_importances.loc['days_elapsed(t)':, :]
+        else:
+            feat_imp_df = feature_importances
+        return feat_imp_df.sort_values(0, ascending = False)
 
 class Predictions(Combined_State_Analysis):
     '''
@@ -233,44 +263,3 @@ class Predictions(Combined_State_Analysis):
         fig.tight_layout()
         if save != None:
             fig.savefig(save, dpi = 300)
-
-def state_analysis(covid_df, state='New York', print_err=False, normalize_day = False, mov_avg = True):
-    '''
-    Produces random forest model for specified state, returns tuple of model and time series dataframe
-    '''
-    if normalize_day == True:
-        state_dfs = normalize_days([state], covid_df)
-        new_df = state_dfs[0]
-        if len(state_dfs) > 1:
-            new_df.append([each_df for each_df in state_dfs[1:]])
-        covid_df = new_df
-        covid_df.rename(
-            columns={'days_since_start': 'days_elapsed'}, inplace=True)
-    if mov_avg == True:
-        revised_df = get_moving_avg_df(covid_df, state=state)
-    else:
-        revised_df = covid_df.copy()
-
-    #Create time series dataframe, fit it into model and evaluate
-    values = revised_df.values
-    num_cols = len(revised_df.columns)
-    ts_frame_data = series_to_supervised(values, revised_df.columns, 21, 1)
-    ts_frame_data = ts_frame_data.iloc[:,
-                                        num_cols-1:-num_cols + 1:num_cols].join(ts_frame_data.iloc[:, -num_cols:])
-    ts_frame_data.index.name = state
-    try:
-        ts_y = ts_frame_data.pop('New_Cases_per_pop(t)')
-    except:
-        ts_y = ts_frame_data.pop('Daily_Cases_per_pop(t)')
-    ts_x = ts_frame_data
-    if 'state(t)' in ts_x.columns:
-        ts_x.drop('state(t)', axis = 1, inplace = True)
-
-    #If there are any negative values in elapsed, it has been normalized.
-    if ts_x[ts_x['days_elapsed(t)'] <0].shape[0] > 0:
-        rf_model = reg_model(ts_x, ts_y, day_cutoff='auto')
-    else:
-        rf_model = reg_model(ts_x, ts_y)
-    rf_model.rand_forest(n_trees=100)
-    rf_model.evaluate_model(print_err_metric=print_err)
-    return rf_model, ts_x, ts_y

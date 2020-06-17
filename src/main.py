@@ -43,11 +43,11 @@ if __name__ == '__main__':
     Similar_States = Comparable_States(covid_df)
     sim_states_df = Similar_States.get_similar_states(state_to_predict = state, recovery_factor_min=1.5, pop_density_tolerance=25)
     similar_states = sim_states_df.index.values
-    
-    # State_Compile = Combined_State_Analysis(similar_states, print_err=True, normalize_day = False)
-    # State_Compile.get_feature_importances().T
-    # print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
-    #     state, similar_states, state))
+    State_Compile = Combined_State_Analysis(covid_df, similar_states, print_err=True, normalize_day = False)
+    print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
+        state, similar_states, state))
+    feat_importances = State_Compile.get_feature_importances()
+    print(feat_importances)
     # Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile, normalize = False)
 
 
