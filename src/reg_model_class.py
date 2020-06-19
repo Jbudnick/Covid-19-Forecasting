@@ -21,7 +21,7 @@ from matplotlib.dates import (DAILY, DateFormatter,
                               rrulewrapper, RRuleLocator, drange)
 
 class reg_model(object):
-    def __init__(self, X, y, train_test_split=100):
+    def __init__(self, X, y, train_test_split=100, ts = False):
         '''
             Parameters:
                 X (Pandas DataFrame): Data to be used for regression model - before train/test split

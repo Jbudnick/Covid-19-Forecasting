@@ -138,10 +138,10 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
 
 
 def find_nearest(array, value):
-    idx = (np.abs(array - value)).argmin()
+    idx = (np.abs(array - value)).idxmin()
     return idx
 
-def normalize_days(states, covid_df, percent_max=0.25, plot=False, save_x_starts = False):
+def normalize_days(compiled_state_df, percent_max= 0.75, plot=False, save_x_starts = False):
     '''
     TBD
     Process covid_df day elapsed column into days elapsed since hitting percent_max of its maximum number of cases/person.
@@ -156,30 +156,30 @@ def normalize_days(states, covid_df, percent_max=0.25, plot=False, save_x_starts
             state_dfs (Pandas DataFrame): Dataframe with added column to normalize days since outbreak
             x_starts (Series): Original time values before normalization
     '''
-    state_dfs = []
-    x_starts = []
+    states = compiled_state_df['state(t)'].unique()
+    normalized_df = pd.DataFrame()
     if plot == True:
         colors = ['red', 'blue', 'green', 'black', 'violet', 'orange']
         fig, ax = plt.subplots(figsize=(12, 6))
     for i, state in enumerate(states):
-        raw = covid_df[covid_df['state'] == state]
-        df = replace_with_moving_averages(raw, ['New_Cases_per_pop'], 0)
-        x = df['days_elapsed']
-        y = df['New_Cases_per_pop']
+        specific_df = compiled_state_df[compiled_state_df['state(t)'] == state].copy()
+        x = specific_df['days_elapsed(t)']
+        y = specific_df['New_Cases_per_pop']
         y_start = max(y) * percent_max
-        y_idx = find_nearest(y.values, y_start)
-        x_start = x[y == y.iloc[y_idx]].values[0]
-        df['days_elapsed'] = df['days_elapsed'] - x_start
-        df.rename(columns = {'days_elapsed': 'days_since_start'}, inplace = True)
+        y = pd.to_numeric(y)
+        max_index = y.idxmax()
+        y_idx = find_nearest(y.loc[:max_index], y_start)
+        x_start = x[y == y.loc[y_idx]].values[0]
+        specific_df['days_since_start'] = specific_df['days_elapsed(t)'] - x_start
+        normalized_df = normalized_df.append(specific_df)
 
         if plot == True:
-            plt.plot(df['days_since_start'], y, c=colors[i], label=state)
+            plt.plot(specific_df['days_since_start'], y, c=colors[i], label=state)
             # ax.axhline(y_start, c=colors[i], lw=2, ls='-.')
             ax.set_title('Day Normalization Plot')
             ax.legend()
-        state_dfs.append(df)
-        x_starts.append(x_start)
-    if save_x_starts == True:
-        return x_starts, state_dfs
-    return state_dfs
+
+    # if save_x_starts == True:
+    #     return x_starts, state_dfs
+    return normalized_df.reset_index(drop = True)
 

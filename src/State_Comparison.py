@@ -135,8 +135,23 @@ class Combined_State_Analysis(reg_model):
         else:
             self.X = X_df_list[0].append(X_df_list[1:])
             self.y = y_df_list[0].append(y_df_list[1:])
-        self.X_rf = self.X[self.X['days_elapsed(t)'] >= min_days]
-        self.y_rf = self.y[self.X['days_elapsed(t)'] >= min_days]
+
+        if normalize_day == True:
+            norm_df = self.X.copy()
+            norm_df['New_Cases_per_pop'] = self.y
+            norm_df = normalize_days(norm_df, plot = True)
+            self.days_elapsed = norm_df['days_elapsed(t)'].copy()
+            norm_df['days_elapsed(t)'] = norm_df['days_since_start']
+            self.y_norm = norm_df.pop('New_Cases_per_pop')
+            self.X_norm = norm_df.drop(['days_since_start'], axis=1)
+
+            self.X_rf = self.X_norm[self.X_norm['days_elapsed(t)'] >= min_days]
+            self.y_rf = self.y_norm[self.X_norm['days_elapsed(t)'] >= min_days]
+        else:
+            self.X_rf = self.X[self.X['days_elapsed(t)'] >= min_days]
+            self.y_rf = self.y[self.X['days_elapsed(t)'] >= min_days]
+        self.min_days = min_days
+
         X_rf = self.X_rf.drop('state(t)', axis = 1)
         self.rf = reg_model(X_rf, self.y_rf, train_test_split)
         self.rf.rand_forest()
@@ -206,28 +221,43 @@ class Predictions(Combined_State_Analysis):
             SD_Table.set_index('', inplace=True)
             return SD_Table
 
-    def plot_similar_states(self, save=None):
+    def plot_similar_states(self, normalize = False, save=None):
         fig, ax = plt.subplots(figsize=(14, 7))
-        x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)
-        y = self.State_Analysis_y.values
+        if normalize == True:
+            State_Analysis = self.State_Analysis_X.copy()
+            State_Analysis['New_Cases_per_pop'] = self.State_Analysis_y
+            State_Analysis = normalize_days(State_Analysis)
+            x = State_Analysis['days_elapsed(t)']
+            y = State_Analysis['New_Cases_per_pop']
+            tts_line = self.State_Compile.rf.train_test_split
+            min_line = self.State_Compile.min_days
+            
+        else:
+            x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)
+            y = self.State_Analysis_y.values
+            tts_line = convert_to_date(self.State_Compile.rf.train_test_split)
+            min_line = convert_to_date(self.State_Compile.min_days)
+            ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
+            fig.autofmt_xdate(rotation=30)
+
+        ax.axvline(tts_line, linestyle='-.', lw='0.7', color='black', label='Train/Test Split')
+        ax.axvline(min_line, linestyle='-.', lw='0.7', color='grey', label='Minimum Days for dataset')
         ax.plot(x.values, y, label=self.state, ls='--', c = 'steelblue')
+
         for i, pop_density in enumerate(self.pop_densities):
-            state_df = self.similar_df[self.similar_df['pop_density(t)']
-                                       == pop_density]
-            x = state_df.loc[:, 'days_elapsed(t)']
+            state_df = self.similar_df[self.similar_df['pop_density(t)'] == pop_density]
+            if normalize == True:
+                x = state_df.loc[:, 'days_elapsed(t)']
+            else:
+                x = state_df.loc[:, 'days_elapsed(t)'].apply(convert_to_date)
             y = state_df.loc[:, 'New_Cases_per_pop(t)']
-            ax.plot(x.apply(convert_to_date), y,
-                    label=self.similar_states[i])
-        ax.axvline(convert_to_date(self.State_Compile.rf.train_test_split), linestyle='-.', lw='0.7',
-                color='black', label='Train/Test Split')
+            ax.plot(x, y,label=self.similar_states[i])
+        
         ax.legend()
-        ax.set_title(
-            'States Similar to {} in Population Density'.format(self.state))
+        ax.set_title('States Similar to {} in Population Density'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
-        fig.autofmt_xdate(rotation=30)
-        fig.tight_layout()
+        plt.show()
         if save != None:
             fig.savefig(save, dpi = 300)
 
@@ -237,7 +267,7 @@ class Predictions(Combined_State_Analysis):
         ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
             convert_to_date), self.State_Compile.rf.model.predict(State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
         ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Analysis_y.values, label='Actually  Observed', c = 'steelblue')
+            convert_to_date), self.State_Analysis_y.values, label='Actually Observed', c = 'steelblue')
         ax.set_ylim(0)
         ax.legend()
         ax.set_title('Model Performance for {}'.format(self.state))
@@ -246,6 +276,7 @@ class Predictions(Combined_State_Analysis):
         ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
         fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
+        plt.show()
         if save != None:
             fig.savefig(save, dpi = 300)
 
