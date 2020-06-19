@@ -6,7 +6,7 @@ Import scripts from other .py files
 from src.State_Comparison import Comparable_States, Combined_State_Analysis, state_analysis, Predictions
 from src.reg_model_class import reg_model
 from src.data_clean_script import replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, convert_to_moving_avg_df
-from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days
+from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days, plot_normalized
 
 import pandas as pd
 import numpy as np
@@ -44,9 +44,9 @@ def state_plot(states, df):
 
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
-    state = 'North Carolina'
-    min_recovery_factor = 1.2
-    pop_density_tolerance = 25
+    state = 'Arizona'
+    min_recovery_factor = 1.85
+    pop_density_tolerance = 30
     SD_delay = 10
     normalize_days = True
 
@@ -63,7 +63,12 @@ if __name__ == '__main__':
         print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
             state, similar_states, state))
             #Investigate data leakage - test set still has time lagged values
-        State_Compile = Combined_State_Analysis(covid_df, similar_states, min_days=0, print_err=True, normalize_day= normalize_days)
+        State_Compile = Combined_State_Analysis(covid_df, state, similar_states, min_days=0, print_err=True, normalize_day= normalize_days)
+
+        normalized_df = State_Compile.X_norm.copy()
+        normalized_df['New_Cases_per_pop'] = State_Compile.y_norm
+        plot_normalized(normalized_df, State_Compile)
+
         feat_importances = State_Compile.get_feature_importances()
         print(feat_importances)
         Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile)

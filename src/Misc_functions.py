@@ -141,7 +141,7 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).idxmin()
     return idx
 
-def normalize_days(compiled_state_df, percent_max= 0.75, plot=False, save_x_starts = False):
+def normalize_days(compiled_state_df, percent_max= 0.25):
     '''
     TBD
     Process covid_df day elapsed column into days elapsed since hitting percent_max of its maximum number of cases/person.
@@ -150,17 +150,13 @@ def normalize_days(compiled_state_df, percent_max= 0.75, plot=False, save_x_star
             states (list)
             covid_df (Pandas df): Dataframe used to normalize
             percent_max (float): Value to use to determine the start of outbreak (0.25 = 25% of maximum new cases is starting point)
-            plot (bool): to create a plotted figure
             save_x_starts (bool): Whether to save original days elapsed values to convert back later
         Returns:
             state_dfs (Pandas DataFrame): Dataframe with added column to normalize days since outbreak
             x_starts (Series): Original time values before normalization
     '''
     states = compiled_state_df['state(t)'].unique()
-    normalized_df = pd.DataFrame()
-    if plot == True:
-        colors = ['red', 'blue', 'green', 'black', 'violet', 'orange']
-        fig, ax = plt.subplots(figsize=(12, 6))
+    normalized_df = pd.DataFrame()     
     for i, state in enumerate(states):
         specific_df = compiled_state_df[compiled_state_df['state(t)'] == state].copy()
         x = specific_df['days_elapsed(t)']
@@ -172,14 +168,30 @@ def normalize_days(compiled_state_df, percent_max= 0.75, plot=False, save_x_star
         x_start = x[y == y.loc[y_idx]].values[0]
         specific_df['days_since_start'] = specific_df['days_elapsed(t)'] - x_start
         normalized_df = normalized_df.append(specific_df)
-
-        if plot == True:
-            plt.plot(specific_df['days_since_start'], y, c=colors[i], label=state)
-            # ax.axhline(y_start, c=colors[i], lw=2, ls='-.')
-            ax.set_title('Day Normalization Plot')
-            ax.legend()
-
-    # if save_x_starts == True:
-    #     return x_starts, state_dfs
     return normalized_df.reset_index(drop = True)
 
+def plot_normalized(normalized_df, Compiled_State_obj):
+    min_day = Compiled_State_obj.min_days
+    train_test_split = Compiled_State_obj.rf.train_test_split
+    states = normalized_df['state(t)'].unique()
+    fig, ax = plt.subplots(figsize=(12, 6))
+    colors = ['red', 'blue', 'green', 'black', 'violet', 'orange']
+
+    state_predict_norm = Compiled_State_obj.state_to_predict_norm
+
+    ax.plot(state_predict_norm['days_since_start'], state_predict_norm['New_Cases_per_pop'], ls='--',
+            label=state_predict_norm['state(t)'].unique()[0])
+
+    for i, state in enumerate(states):
+        specific_df = normalized_df[normalized_df['state(t)'] == state].copy()
+        x = specific_df['days_elapsed(t)']
+        y = specific_df['New_Cases_per_pop']
+        ax.plot(specific_df['days_elapsed(t)'], y, c=colors[i], label=state)
+    ax.axvline(min_day, label = 'Minimum Day for Training Set', ls = '-.', c = 'black', lw = 1)
+    ax.axvline(train_test_split, label = 'Train/Test Split', ls = '-.', c = 'grey', lw = 1)
+    ax.set_title('Daily New Cases Plot (Normalized)')
+    ax.set_xlabel('Days Since {}% of Maximum Cases'.format(Compiled_State_obj.percent_of_max * 100))
+    ax.set_ylabel('Daily New Cases/1M Pop')
+    ax.legend()
+    fig.tight_layout()
+    fig.show()

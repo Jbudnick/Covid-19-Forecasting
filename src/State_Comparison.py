@@ -114,7 +114,7 @@ class Combined_State_Analysis(reg_model):
     class to generate similar states for better results before calling predictions class.
     '''
 
-    def __init__(self, covid_df, state_list, min_days = 45, train_test_split = 0.8, print_err=False, normalize_day=False):
+    def __init__(self, covid_df, state_to_predict, state_list, min_days = 0, train_test_split = 0.4, print_err=False, normalize_day= True, percent_of_max_cases= 0.25):
         '''
             Parameters:
                 covid_df (Pandas DataFrame): dataset with moving average, etc 
@@ -129,6 +129,9 @@ class Combined_State_Analysis(reg_model):
         self.state_list = state_list
         X_df_list = [state_analysis(self.covid_df, state=state)[0] for state in state_list]
         y_df_list = [state_analysis(self.covid_df, state=state)[1] for state in state_list]
+        state_to_predict_analysis = state_analysis(covid_df, state=state_to_predict)
+        state_to_predict_analysis[0]['New_Cases_per_pop'] = state_to_predict_analysis[1]
+        self.state_to_predict_analysis = state_to_predict_analysis[0].copy()
         if len(X_df_list) == 1:
             self.X = X_df_list[0]
             self.y = y_df_list[0]
@@ -137,9 +140,11 @@ class Combined_State_Analysis(reg_model):
             self.y = y_df_list[0].append(y_df_list[1:])
 
         if normalize_day == True:
+            #Percent of maximum cases to define start of outbreak per state
+            self.percent_of_max = percent_of_max_cases
             norm_df = self.X.copy()
             norm_df['New_Cases_per_pop'] = self.y
-            norm_df = normalize_days(norm_df, plot = True)
+            norm_df = normalize_days(norm_df, percent_max = percent_of_max_cases)
             self.days_elapsed = norm_df['days_elapsed(t)'].copy()
             norm_df['days_elapsed(t)'] = norm_df['days_since_start']
             self.y_norm = norm_df.pop('New_Cases_per_pop')
@@ -147,13 +152,15 @@ class Combined_State_Analysis(reg_model):
 
             self.X_rf = self.X_norm[self.X_norm['days_elapsed(t)'] >= min_days]
             self.y_rf = self.y_norm[self.X_norm['days_elapsed(t)'] >= min_days]
+
+            self.state_to_predict_norm = normalize_days(self.state_to_predict_analysis, percent_max = percent_of_max_cases)
         else:
             self.X_rf = self.X[self.X['days_elapsed(t)'] >= min_days]
             self.y_rf = self.y[self.X['days_elapsed(t)'] >= min_days]
         self.min_days = min_days
 
         X_rf = self.X_rf.drop('state(t)', axis = 1)
-        self.rf = reg_model(X_rf, self.y_rf, train_test_split)
+        self.rf = reg_model(X_rf, self.y_rf, train_test_split, normalized = percent_of_max_cases)
         self.rf.rand_forest()
         self.evaluate = self.rf.evaluate_model(print_err_metric=print_err)
 
@@ -186,6 +193,7 @@ class Predictions(Combined_State_Analysis):
                 Most methods generate predictions in the form of plots
         '''
         self.state = state_to_predict
+        self.covid_df = covid_df
         self.similar_states = similar_states
         self.State_Compile = Comb_St_Analysis
         self.similar_df = Comb_St_Analysis.X.copy()
@@ -221,37 +229,23 @@ class Predictions(Combined_State_Analysis):
             SD_Table.set_index('', inplace=True)
             return SD_Table
 
-    def plot_similar_states(self, normalize = False, save=None):
-        fig, ax = plt.subplots(figsize=(14, 7))
-        if normalize == True:
-            State_Analysis = self.State_Analysis_X.copy()
-            State_Analysis['New_Cases_per_pop'] = self.State_Analysis_y
-            State_Analysis = normalize_days(State_Analysis)
-            x = State_Analysis['days_elapsed(t)']
-            y = State_Analysis['New_Cases_per_pop']
-            tts_line = self.State_Compile.rf.train_test_split
-            min_line = self.State_Compile.min_days
-            
-        else:
-            x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)
-            y = self.State_Analysis_y.values
-            tts_line = convert_to_date(self.State_Compile.rf.train_test_split)
-            min_line = convert_to_date(self.State_Compile.min_days)
-            ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
-            fig.autofmt_xdate(rotation=30)
+    def plot_similar_states(self, save=None):
+        '''
+        Note - Use plot_normalized function for normalized plots. This is intended for non-normalized date axis only.
 
-        ax.axvline(tts_line, linestyle='-.', lw='0.7', color='black', label='Train/Test Split')
-        ax.axvline(min_line, linestyle='-.', lw='0.7', color='grey', label='Minimum Days for dataset')
+        '''
+        fig, ax = plt.subplots(figsize=(14, 7))
+        x = self.State_Analysis_X['days_elapsed(t)'].apply(convert_to_date)
+        y = self.State_Analysis_y.values
+        # ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
+        # fig.autofmt_xdate(rotation=30)
         ax.plot(x.values, y, label=self.state, ls='--', c = 'steelblue')
 
-        for i, pop_density in enumerate(self.pop_densities):
-            state_df = self.similar_df[self.similar_df['pop_density(t)'] == pop_density]
-            if normalize == True:
-                x = state_df.loc[:, 'days_elapsed(t)']
-            else:
-                x = state_df.loc[:, 'days_elapsed(t)'].apply(convert_to_date)
-            y = state_df.loc[:, 'New_Cases_per_pop(t)']
-            ax.plot(x, y,label=self.similar_states[i])
+        for state in self.similar_states:
+            state_df = self.covid_df[self.covid_df['state'] == state]
+            x = state_df.loc[:, 'days_elapsed'].apply(convert_to_date)
+            y = state_df.loc[:, 'New_Cases_per_pop']
+            ax.plot(x, y,label= state)
         
         ax.legend()
         ax.set_title('States Similar to {} in Population Density'.format(self.state))
@@ -264,17 +258,17 @@ class Predictions(Combined_State_Analysis):
     def plot_pred_vs_actual(self, save=None):
         fig, ax = plt.subplots(figsize=(14, 7))
         State_Analysis_X = self.State_Analysis_X.drop('state(t)', axis = 1)
-        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Compile.rf.model.predict(State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
-        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Analysis_y.values, label='Actually Observed', c = 'steelblue')
+        # ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
+            # convert_to_date), self.State_Compile.rf.model.predict(State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
+        # ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
+        #     convert_to_date), self.State_Analysis_y.values, label='Actually Observed', c = 'steelblue')
         ax.set_ylim(0)
         ax.legend()
         ax.set_title('Model Performance for {}'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
-        fig.autofmt_xdate(rotation=30)
+        # ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
+        # fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         plt.show()
         if save != None:

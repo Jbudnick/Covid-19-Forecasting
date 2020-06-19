@@ -21,7 +21,7 @@ from matplotlib.dates import (DAILY, DateFormatter,
                               rrulewrapper, RRuleLocator, drange)
 
 class reg_model(object):
-    def __init__(self, X, y, train_test_split=100, ts = False):
+    def __init__(self, X, y, train_test_split=0.75, ts = False, normalized = False):
         '''
             Parameters:
                 X (Pandas DataFrame): Data to be used for regression model - before train/test split
@@ -33,14 +33,13 @@ class reg_model(object):
         if type(train_test_split) is float:
             days = X['days_elapsed(t)']
             train_test_split = int(((days.max() - days.min()) * train_test_split) + days.min())
-            print('Train/Test Split on day',train_test_split, '(',convert_to_date(train_test_split),')')
-        elif train_test_split == 'auto':
-            '''
-            For grouped datasets that are normalized, this will take the minimum value of the maximums of each state for test set.
-            '''
-            train_test_split = self.X.groupby('pop_density(t)')['days_elapsed(t)'].max().values.min()
         elif train_test_split >= self.X['days_elapsed(t)'].max():
             train_test_split = self.X['days_elapsed(t)'].max() - 10
+        if type(normalized) is float:
+            print('Train/Test Split on day', train_test_split, 'after state reached',
+                  normalized * 100, "% of maximum daily new cases.")
+        else:
+            print('Train/Test Split on', convert_to_date(train_test_split))
         self.train_test_split = train_test_split
         train_mask = self.X['days_elapsed(t)'] < train_test_split
         holdout_mask = self.X['days_elapsed(t)'] >= train_test_split
