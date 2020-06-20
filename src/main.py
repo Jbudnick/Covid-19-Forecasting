@@ -44,9 +44,9 @@ def state_plot(states, df):
 
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
-    state = 'Arizona'
-    min_recovery_factor = 1.85
-    pop_density_tolerance = 30
+    state = 'Minnesota'
+    min_recovery_factor = 2
+    pop_density_tolerance = 25
     SD_delay = 10
     normalize_days = True
 

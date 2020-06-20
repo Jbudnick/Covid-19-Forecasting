@@ -12,6 +12,7 @@ from sklearn.metrics import mean_squared_error
 
 from scipy.interpolate import make_interp_spline
 from src.data_clean_script import replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround
+from src.Misc_functions import fill_blank_known_ts, populate_predictions
 
 from pandas.plotting import register_matplotlib_converters
 import matplotlib.pyplot as plt
@@ -43,8 +44,18 @@ class reg_model(object):
         self.train_test_split = train_test_split
         train_mask = self.X['days_elapsed(t)'] < train_test_split
         holdout_mask = self.X['days_elapsed(t)'] >= train_test_split
-        self.X_train, self.X_test, self.y_train, self.y_test = self.X[
+        self.X_train, X_test, self.y_train, self.y_test = self.X[
             train_mask], self.X[holdout_mask], self.y[train_mask], self.y[holdout_mask]
+        self.X_test = X_test.copy()
+        new_state_idx = self.X_test['pop_density(t)'].drop_duplicates().index.values
+        min_idx = new_state_idx[0] + 1
+        for i in new_state_idx[1:]:
+            self.X_test.loc[min_idx: i - 1, 'New_Cases_per_pop(t-21)': 'New_Cases_per_pop(t-1)'] = 0
+            fill_blank_known_ts(self.X_test, None, min_idx, row_end = i)
+            min_idx = i + 1
+        self.X_test.loc[min_idx:, 'New_Cases_per_pop(t-21)': 'New_Cases_per_pop(t-1)'] = 0
+        fill_blank_known_ts(self.X_test, None, min_idx, row_end=self.X_test.index.max(), test=False)
+        # Need to create predictions into dataframe now
         self.error_metric = None
 
     def rand_forest(self, n_trees=100):
@@ -76,6 +87,7 @@ class reg_model(object):
         '''
         Determine validity of model on test set.
         '''
+        breakpoint()
         self.y_hat = self.model.predict(self.X_test)
         self.predicted_vals_df = pd.DataFrame(self.y_test)
         self.predicted_vals_df['days_elapsed(t)'] = self.X_test['days_elapsed(t)']

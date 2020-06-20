@@ -55,6 +55,7 @@ def populate_predictions(df, preds, model, start_row, n_interval=21):
     df.fillna(0, inplace=True)
     n_rows = df.shape[0]
     new_preds = list(preds.values)
+    start_row = df.index.get_loc(start_row)
     for row in range(start_row, n_rows):
         new_pred = model.predict(df[row:row + 1])[0]
         new_preds.append(new_pred)
@@ -69,6 +70,26 @@ def populate_predictions(df, preds, model, start_row, n_interval=21):
     new_pred = model.predict(df[-1:-2:-1])[0]
     new_preds.append(new_pred)
     return df, new_preds
+
+def fill_blank_known_ts(pred_df, total_y, row_start, row_end = 'all', test = False):
+    if test == True:
+        breakpoint()
+    if row_end == 'all':
+        row_end = pred_df.shape[0]
+    else:
+        row_end = pred_df.index.get_loc(row_end)
+    pred_df.fillna(0, inplace=True)
+    col_start = pred_df.columns.get_loc('New_Cases_per_pop(t-1)')
+    row_start = pred_df.index.get_loc(row_start)
+    if total_y == None:
+        pass
+    else:
+        pred_df.iloc[row_start, col_start] = total_y.values[-1]
+
+    for row in range(row_start, row_end):
+        for col in range(col_start - 1, -1, -1):
+            pred_df.iloc[row, col] = pred_df.iloc[row - 1, col + 1]
+    return pred_df
 
 def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predictions=21, SD_delay = 10):
     '''
@@ -117,23 +138,15 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
         pred_df_row.index = [future_index]
         pred_df = pred_df.append(pred_df_row, sort=False)
 
-    y_pred = total_y
-
     # Part 2: Fills in blank known new cases values
-    n_rows = pred_df.shape[0]
-    pred_df.fillna(0, inplace=True)
     row_start = pred_df.shape[0] - pred_df[pred_df['New_Cases_per_pop(t-1)'] == 0].count()[0]
-    col_start = 20
-    pred_df.iloc[row_start, col_start] = y_pred.values[-1]
-    for row in range(row_start, n_rows):
-        for col in range(col_start - 1, -1, -1):
-            pred_df.iloc[row, col] = pred_df.iloc[row - 1, col + 1]
+    pred_df = fill_blank_known_ts(pred_df = pred_df, total_y = total_y, row_start = row_start)
 
     #Part 3: Fills in rest of time lagged values for future t values, predicting based on prior predictions
-    fill_diag_and_predictions = populate_predictions(
-        pred_df, y_pred, rf.model, start_row=row_start, n_interval=21)
+    fill_diag_and_predictions = populate_predictions(pred_df, total_y, rf.model, start_row= row_start, n_interval=21)
     pred_df = fill_diag_and_predictions[0]
     pred_y = fill_diag_and_predictions[1][-pred_df.shape[0]:]
+    breakpoint()
     return pred_df, pred_y
 
 
