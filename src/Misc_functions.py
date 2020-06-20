@@ -39,7 +39,7 @@ def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
     return agg
 
 
-def populate_predictions(df, preds, model, start_row, n_interval=21):
+def populate_predictions(df, preds, model, start_row, end_row = 'all', n_interval=21):
     '''
     Used to populate time lagged observations - diagonal on supervised matrix for time lagged columns
         Parameters:
@@ -53,14 +53,17 @@ def populate_predictions(df, preds, model, start_row, n_interval=21):
             new_preds (Series): Series of new predictions
     '''
     df.fillna(0, inplace=True)
-    n_rows = df.shape[0]
+    if end_row == 'all':
+        end_row = df.shape[0]
+    else:
+        end_row = df.index.get_loc(end_row)
     new_preds = list(preds.values)
     start_row = df.index.get_loc(start_row)
-    for row in range(start_row, n_rows):
+    for row in range(start_row, end_row):
         new_pred = model.predict(df[row:row + 1])[0]
         new_preds.append(new_pred)
         j = 1
-        for col in range(n_interval-1, 0, -1):
+        for col in range(n_interval-1, -1, -1):
             try:
                 if df.iloc[row + j, col] == 0:
                     df.iloc[row + j, col] = new_pred
@@ -188,7 +191,6 @@ def plot_normalized(normalized_df, Compiled_State_obj):
     train_test_split = Compiled_State_obj.rf.train_test_split
     states = normalized_df['state(t)'].unique()
     fig, ax = plt.subplots(figsize=(12, 6))
-    colors = ['red', 'blue', 'green', 'black', 'violet', 'orange']
 
     state_predict_norm = Compiled_State_obj.state_to_predict_norm
 
@@ -199,7 +201,7 @@ def plot_normalized(normalized_df, Compiled_State_obj):
         specific_df = normalized_df[normalized_df['state(t)'] == state].copy()
         x = specific_df['days_elapsed(t)']
         y = specific_df['New_Cases_per_pop']
-        ax.plot(specific_df['days_elapsed(t)'], y, c=colors[i], label=state)
+        ax.plot(specific_df['days_elapsed(t)'], y, label=state)
     ax.axvline(min_day, label = 'Minimum Day for Training Set', ls = '-.', c = 'black', lw = 1)
     ax.axvline(train_test_split, label = 'Train/Test Split', ls = '-.', c = 'grey', lw = 1)
     ax.set_title('Daily New Cases Plot (Normalized)')

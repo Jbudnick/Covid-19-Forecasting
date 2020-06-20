@@ -44,18 +44,8 @@ class reg_model(object):
         self.train_test_split = train_test_split
         train_mask = self.X['days_elapsed(t)'] < train_test_split
         holdout_mask = self.X['days_elapsed(t)'] >= train_test_split
-        self.X_train, X_test, self.y_train, self.y_test = self.X[
-            train_mask], self.X[holdout_mask], self.y[train_mask], self.y[holdout_mask]
-        self.X_test = X_test.copy()
-        new_state_idx = self.X_test['pop_density(t)'].drop_duplicates().index.values
-        min_idx = new_state_idx[0] + 1
-        for i in new_state_idx[1:]:
-            self.X_test.loc[min_idx: i - 1, 'New_Cases_per_pop(t-21)': 'New_Cases_per_pop(t-1)'] = 0
-            fill_blank_known_ts(self.X_test, None, min_idx, row_end = i)
-            min_idx = i + 1
-        self.X_test.loc[min_idx:, 'New_Cases_per_pop(t-21)': 'New_Cases_per_pop(t-1)'] = 0
-        fill_blank_known_ts(self.X_test, None, min_idx, row_end=self.X_test.index.max(), test=False)
-        # Need to create predictions into dataframe now
+        self.X_train, self.X_test, self.y_train, self.y_test = self.X[
+            train_mask], self.X[holdout_mask].copy(), self.y[train_mask], self.y[holdout_mask]
         self.error_metric = None
 
     def rand_forest(self, n_trees=100):
@@ -83,11 +73,23 @@ class reg_model(object):
         self.model.fit(self.X_train, self.y_train)
         self.error_metric = 'rmse'
 
+        #Remove leakage from test set
+        new_state_idx = self.X_test['pop_density(t)'].drop_duplicates(
+        ).index.values
+        min_idx = new_state_idx[0] + 1
+        for i in new_state_idx[1:]:
+            self.X_test.loc[min_idx: i - 1, 'New_Cases_per_pop(t-21)': 'New_Cases_per_pop(t-1)'] = 0
+            fill_blank_known_ts(self.X_test, None, min_idx, row_end=i)
+            populate_predictions(self.X_test, preds=pd.DataFrame(), model=self.model, start_row=min_idx - 1, end_row=i)[0]
+            min_idx = i + 1
+        self.X_test.loc[min_idx:, 'New_Cases_per_pop(t-21)': 'New_Cases_per_pop(t-1)'] = 0
+        fill_blank_known_ts(self.X_test, None, min_idx, row_end=self.X_test.index.max(), test=False)
+        populate_predictions(self.X_test, preds=pd.DataFrame(), model=self.model, start_row=min_idx - 1, end_row=self.X_test.index.max())[0]
+
     def evaluate_model(self, print_err_metric=False):
         '''
         Determine validity of model on test set.
         '''
-        breakpoint()
         self.y_hat = self.model.predict(self.X_test)
         self.predicted_vals_df = pd.DataFrame(self.y_test)
         self.predicted_vals_df['days_elapsed(t)'] = self.X_test['days_elapsed(t)']
@@ -103,10 +105,6 @@ class reg_model(object):
             if print_err_metric:
                 print('rss: ', rss)
             return rss
-
-    # def forecast_vals(self, to_forecast_df):
-    #     self.forecasted = self.model.predict(to_forecast_df)
-    #     return self.forecasted
 
     def plot_model(self, threshold=100, save_name=None, xvar='days_elapsed(t)', convDate=True):
         '''

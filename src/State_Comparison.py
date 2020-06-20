@@ -258,17 +258,17 @@ class Predictions(Combined_State_Analysis):
     def plot_pred_vs_actual(self, save=None):
         fig, ax = plt.subplots(figsize=(14, 7))
         State_Analysis_X = self.State_Analysis_X.drop('state(t)', axis = 1)
-        # ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
-            # convert_to_date), self.State_Compile.rf.model.predict(State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
-        # ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
-        #     convert_to_date), self.State_Analysis_y.values, label='Actually Observed', c = 'steelblue')
+        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
+            convert_to_date), self.State_Compile.rf.model.predict(State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
+        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
+            convert_to_date), self.State_Analysis_y.values, label='Actually Observed', c = 'steelblue')
         ax.set_ylim(0)
         ax.legend()
         ax.set_title('Model Performance for {}'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
-        # ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
-        # fig.autofmt_xdate(rotation=30)
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
+        fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         plt.show()
         if save != None:

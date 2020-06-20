@@ -44,10 +44,11 @@ def state_plot(states, df):
 
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
-    state = 'Minnesota'
-    min_recovery_factor = 2
-    pop_density_tolerance = 25
+    state = 'Arizona'
+    min_recovery_factor = 1.5
+    pop_density_tolerance = 40
     SD_delay = 10
+    train_test_split = 0.8
     normalize_days = True
 
     raw_covid_df = load_and_clean_data(use_internet = True)
@@ -63,7 +64,7 @@ if __name__ == '__main__':
         print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
             state, similar_states, state))
             #Investigate data leakage - test set still has time lagged values
-        State_Compile = Combined_State_Analysis(covid_df, state, similar_states, min_days=0, print_err=True, normalize_day= normalize_days)
+        State_Compile = Combined_State_Analysis(covid_df, state, similar_states, train_test_split=train_test_split, min_days=0, print_err=True, normalize_day=normalize_days)
 
         normalized_df = State_Compile.X_norm.copy()
         normalized_df['New_Cases_per_pop'] = State_Compile.y_norm
@@ -72,5 +73,6 @@ if __name__ == '__main__':
         feat_importances = State_Compile.get_feature_importances()
         print(feat_importances)
         Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile)
+        Prediction_Insights.plot_pred_vs_actual()
 
     #Plots in notebooks/EDA.ipynb
