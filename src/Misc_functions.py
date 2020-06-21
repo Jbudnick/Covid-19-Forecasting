@@ -1,4 +1,5 @@
 from src.data_clean_script import replace_with_moving_averages
+from src.data_clean_script import load_and_clean_data, convert_to_moving_avg_df
 
 import pandas as pd
 import numpy as np
@@ -37,6 +38,16 @@ def series_to_supervised(data, columns, n_in=1, n_out=1, dropnan=True):
     if dropnan:
         agg.dropna(inplace=True)
     return agg
+
+def get_future_SD_params(SD_delay, state):
+    '''
+    If a delay is set on the main DataFrame SD parameters for the moving average, this function will be called to pull current moving average SD parameters from the original dataset to populate future SD parameters.
+    '''
+    raw_covid_df = load_and_clean_data(use_internet=True)
+    raw_covid_df = raw_covid_df[raw_covid_df['state'] == state]
+    covid_df = convert_to_moving_avg_df(raw_covid_df, SD_delay= 0)
+    SD_params_future = covid_df.iloc[-SD_delay:, 2:-2]
+    return SD_params_future
 
 def blank_out_lagged_columns(df, row_start):
     col_end = df.columns.get_loc('New_Cases_per_pop(t-1)')
@@ -99,7 +110,7 @@ def fill_blank_known_ts(pred_df, total_y, row_start, row_end = 'all'):
             pred_df.iloc[row, col] = pred_df.iloc[row - 1, col + 1]
     return pred_df
 
-def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predictions=21, SD_delay = 10):
+def generate_prediction_df(level, total_x, total_y, rf, predictions=21, SD_delay = 10):
     '''
     Generates a pandas Dataframe out into the future. Uses predictions with time lags on future predictions.
 
@@ -133,11 +144,12 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
         pred_params = levelDict[level]
 
     pred_df = total_x.copy()
-    pred_df.drop('state(t)', axis = 1, inplace = True)
     last_recorded_day = int(pred_df['days_elapsed(t)'].max())
     pop_dens = pred_df['pop_density(t)'].mode().iloc[0]
     future_index = pred_df.index.max()
-    #Insert call function to retrieve moving averages of last SD_delay values here to populate initial SD parameters
+
+    state = pred_df['state(t)'].unique()[0]
+    pred_df.drop('state(t)', axis=1, inplace=True)
 
     for i in range(last_recorded_day + 1, last_recorded_day + predictions + 1):
         pred_df_row = pd.DataFrame([i] + pred_params + [pop_dens]).T
@@ -145,6 +157,15 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
         future_index += 1
         pred_df_row.index = [future_index]
         pred_df = pred_df.append(pred_df_row, sort=False)
+
+    if SD_delay != 0:
+        SD_future = get_future_SD_params(SD_delay, state=state)
+        SD_future.columns += '(t)'
+        st_idx = pred_df[pred_df['days_elapsed(t)'] == last_recorded_day].index[0] + 1
+        st_col = pred_df.columns.get_loc('retail_and_recreation(t)')
+        end_col = len(SD_future.columns) + st_col
+        for i in range(len(SD_future.index)):
+            pred_df.iloc[st_idx + i, st_col: end_col] = SD_future.iloc[i, :]
 
     # Part 2: Fills in blank known new cases values
     pred_df.fillna(0, inplace=True)
@@ -156,7 +177,6 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
     pred_df = fill_diag_and_predictions[0]
     pred_y = fill_diag_and_predictions[1][-pred_df.shape[0]:]
     return pred_df, pred_y
-
 
 def find_nearest(array, value):
     idx = (np.abs(array - value)).idxmin()

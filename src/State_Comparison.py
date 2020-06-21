@@ -302,7 +302,7 @@ class Predictions(Combined_State_Analysis):
         norm_y = norm_state_to_predict.pop('New_Cases_per_pop')
 
         high_pred = generate_prediction_df(
-            max_SD, norm_state_to_predict, norm_y, predictions=21, rf=self.State_Compile.rf)
+            max_SD, norm_state_to_predict, norm_y, predictions=21, rf=self.State_Compile.rf, SD_delay = SD_delay)
         fig, ax = plt.subplots(figsize=(14, 7))
         x = self.State_Compile.days_to_normalize_diff + high_pred[0]['days_elapsed(t)']
         y = high_pred[1]

@@ -45,13 +45,14 @@ def state_plot(states, df):
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
     #Similar_States.master_pop_density_df[Similar_States.master_pop_density_df['Recovery Factor'] < 1.1]
-    state = 'Minnesota'
+    state = 'North Carolina'
     min_recovery_factor = 1.2
     pop_density_tolerance = 20
-    SD_delay = 10
-    train_test_split = 0.3
+    SD_delay = 7
+    train_test_split = 0.4
     normalize_days = True
-    #add parameter for % of max cases
+    #Define outbreak start
+    percent_max_cases = 0.25
 
     raw_covid_df = load_and_clean_data(use_internet = True)
     covid_df = convert_to_moving_avg_df(raw_covid_df, SD_delay = SD_delay)
@@ -65,7 +66,7 @@ if __name__ == '__main__':
     else:
         print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
             state, similar_states, state))
-        State_Compile = Combined_State_Analysis(covid_df, state, similar_states, train_test_split=train_test_split, min_days=0, print_err=True, normalize_day=normalize_days)
+        State_Compile = Combined_State_Analysis(covid_df, state, similar_states, train_test_split=train_test_split, min_days=0, print_err=True, normalize_day=normalize_days, percent_of_max_cases = percent_max_cases)
 
         normalized_df = State_Compile.X_norm.copy()
         normalized_df['New_Cases_per_pop'] = State_Compile.y_norm
@@ -76,5 +77,5 @@ if __name__ == '__main__':
         Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile)
         Prediction_Insights.plot_similar_states()
         Prediction_Insights.plot_pred_vs_actual(row_start = 35) #Row start must be at least 30
-        Prediction_Insights.forecast_to_future()
+        Prediction_Insights.forecast_to_future(SD_delay = SD_delay)
     #Plots in notebooks/EDA.ipynb
