@@ -44,12 +44,14 @@ def state_plot(states, df):
 
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
-    state = 'North Carolina'
-    min_recovery_factor = 0.9
-    pop_density_tolerance = 35
+    #Similar_States.master_pop_density_df[Similar_States.master_pop_density_df['Recovery Factor'] < 1.1]
+    state = 'Minnesota'
+    min_recovery_factor = 1.2
+    pop_density_tolerance = 20
     SD_delay = 10
-    train_test_split = 0.8
+    train_test_split = 0.3
     normalize_days = True
+    #add parameter for % of max cases
 
     raw_covid_df = load_and_clean_data(use_internet = True)
     covid_df = convert_to_moving_avg_df(raw_covid_df, SD_delay = SD_delay)
@@ -67,11 +69,12 @@ if __name__ == '__main__':
 
         normalized_df = State_Compile.X_norm.copy()
         normalized_df['New_Cases_per_pop'] = State_Compile.y_norm
-        # plot_normalized(normalized_df, State_Compile)
+        plot_normalized(normalized_df, State_Compile)
 
         feat_importances = State_Compile.get_feature_importances()
         print(feat_importances)
         Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile)
+        Prediction_Insights.plot_similar_states()
         Prediction_Insights.plot_pred_vs_actual(row_start = 35) #Row start must be at least 30
-
+        Prediction_Insights.forecast_to_future()
     #Plots in notebooks/EDA.ipynb

@@ -83,9 +83,12 @@ def fill_blank_known_ts(pred_df, total_y, row_start, row_end = 'all'):
         row_end = pred_df.shape[0]
     else:
         row_end = pred_df.index.get_loc(row_end)
-    pred_df.fillna(0, inplace=True)
+    # pred_df.fillna(0, inplace=True)
     col_start = pred_df.columns.get_loc('New_Cases_per_pop(t-1)')
-    row_start = pred_df.index.get_loc(row_start)
+    try:
+        row_start = pred_df.index.get_loc(row_start)
+    except:
+        breakpoint()
     if type(total_y) is pd.Series:
         pred_df.iloc[row_start, col_start] = total_y.values[-1]
     else:
@@ -132,7 +135,6 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
     pred_df = total_x.copy()
     pred_df.drop('state(t)', axis = 1, inplace = True)
     last_recorded_day = int(pred_df['days_elapsed(t)'].max())
-    breakpoint()
     pop_dens = pred_df['pop_density(t)'].mode().iloc[0]
     future_index = pred_df.index.max()
     #Insert call function to retrieve moving averages of last SD_delay values here to populate initial SD parameters
@@ -145,6 +147,7 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
         pred_df = pred_df.append(pred_df_row, sort=False)
 
     # Part 2: Fills in blank known new cases values
+    pred_df.fillna(0, inplace=True)
     row_start = pred_df.shape[0] - pred_df[pred_df['New_Cases_per_pop(t-1)'] == 0].count()[0]
     pred_df = fill_blank_known_ts(pred_df = pred_df, total_y = total_y, row_start = row_start)
 
@@ -152,7 +155,6 @@ def generate_prediction_df(level, total_x, total_y, rf, delayed_SD = 0, predicti
     fill_diag_and_predictions = populate_predictions(pred_df, total_y, rf.model, start_row= row_start, n_interval=21)
     pred_df = fill_diag_and_predictions[0]
     pred_y = fill_diag_and_predictions[1][-pred_df.shape[0]:]
-    breakpoint()
     return pred_df, pred_y
 
 
