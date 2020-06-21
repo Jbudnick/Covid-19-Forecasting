@@ -1,6 +1,6 @@
 from src.reg_model_class import reg_model
 from src.data_clean_script import replace_initial_values, replace_with_moving_averages, load_and_clean_data, create_spline, convert_to_date, fill_na_with_surround, convert_to_moving_avg_df
-from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days
+from src.Misc_functions import series_to_supervised, generate_prediction_df, normalize_days, fill_blank_known_ts, blank_out_lagged_columns, populate_predictions
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -154,6 +154,9 @@ class Combined_State_Analysis(reg_model):
             self.y_rf = self.y_norm[self.X_norm['days_elapsed(t)'] >= min_days]
 
             self.state_to_predict_norm = normalize_days(self.state_to_predict_analysis, percent_max = percent_of_max_cases)
+            #Use this attribute to convert from days_elapsed to days_since_start of epidemic for predicted state only
+            self.days_to_normalize_diff = self.state_to_predict_norm['days_elapsed(t)'].min(
+            ) - self.state_to_predict_norm['days_since_start'].min()
         else:
             self.X_rf = self.X[self.X['days_elapsed(t)'] >= min_days]
             self.y_rf = self.y[self.X['days_elapsed(t)'] >= min_days]
@@ -255,20 +258,28 @@ class Predictions(Combined_State_Analysis):
         if save != None:
             fig.savefig(save, dpi = 300)
 
-    def plot_pred_vs_actual(self, save=None):
+    def plot_pred_vs_actual(self, row_start, save=None):
         fig, ax = plt.subplots(figsize=(14, 7))
         State_Analysis_X = self.State_Analysis_X.drop('state(t)', axis = 1)
-        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Compile.rf.model.predict(State_Analysis_X), label='Model Predictions', c = 'black', ls = '--')
-        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(
-            convert_to_date), self.State_Analysis_y.values, label='Actually Observed', c = 'steelblue')
+        self.State_Compile.state_to_predict_norm[
+            'days_elapsed(t)'] = self.State_Compile.state_to_predict_norm['days_since_start']
+        Norm_state_to_predict = self.State_Compile.state_to_predict_norm.drop(
+            ['state(t)', 'New_Cases_per_pop', 'days_since_start'], axis=1)
+        blank_out_lagged_columns(Norm_state_to_predict, row_start)
+        fill_blank_known_ts(Norm_state_to_predict, None, row_start)
+        norm_predictions = populate_predictions(Norm_state_to_predict,
+                             pd.DataFrame(), self.State_Compile.rf.model, row_start - 1)
+        x_denormalized = self.State_Compile.days_to_normalize_diff + \
+            norm_predictions[0]['days_elapsed(t)'].loc[row_start:]
+        ax.plot(x_denormalized.apply(convert_to_date), norm_predictions[1][1:-1], label='Model Predictions', c='black', ls='--')
+        ax.plot(State_Analysis_X['days_elapsed(t)'].apply(convert_to_date), self.State_Analysis_y.values, label='Actually Observed', c = 'steelblue')
         ax.set_ylim(0)
         ax.legend()
         ax.set_title('Model Performance for {}'.format(self.state))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
-        fig.autofmt_xdate(rotation=30)
+        # ax.xaxis.set_major_locator(ticker.MultipleLocator(7))
+        # fig.autofmt_xdate(rotation=30)
         fig.tight_layout()
         plt.show()
         if save != None:

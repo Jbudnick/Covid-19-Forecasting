@@ -73,7 +73,7 @@ class reg_model(object):
         self.model.fit(self.X_train, self.y_train)
         self.error_metric = 'rmse'
 
-        #Remove leakage from test set
+        #Removes leakage from test set
         new_state_idx = self.X_test['pop_density(t)'].drop_duplicates(
         ).index.values
         min_idx = new_state_idx[0] + 1
@@ -83,8 +83,8 @@ class reg_model(object):
             populate_predictions(self.X_test, preds=pd.DataFrame(), model=self.model, start_row=min_idx - 1, end_row=i)[0]
             min_idx = i + 1
         self.X_test.loc[min_idx:, 'New_Cases_per_pop(t-21)': 'New_Cases_per_pop(t-1)'] = 0
-        fill_blank_known_ts(self.X_test, None, min_idx, row_end=self.X_test.index.max(), test=False)
-        populate_predictions(self.X_test, preds=pd.DataFrame(), model=self.model, start_row=min_idx - 1, end_row=self.X_test.index.max())[0]
+        fill_blank_known_ts(self.X_test, None, min_idx, row_end= 'all')
+        populate_predictions(self.X_test, preds=pd.DataFrame(), model=self.model, start_row=min_idx - 1, end_row= 'all')[0]
 
     def evaluate_model(self, print_err_metric=False):
         '''
