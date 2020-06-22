@@ -50,6 +50,7 @@ if __name__ == '__main__':
     pop_density_tolerance = 20
     SD_delay = 7
     train_test_split = 0.4
+    test_row_start = 35
     normalize_days = True
     #Define outbreak start
     percent_max_cases = 0.25
@@ -70,12 +71,12 @@ if __name__ == '__main__':
 
         normalized_df = State_Compile.X_norm.copy()
         normalized_df['New_Cases_per_pop'] = State_Compile.y_norm
-        plot_normalized(normalized_df, State_Compile)
-
+        
         feat_importances = State_Compile.get_feature_importances()
         print(feat_importances)
         Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile)
         Prediction_Insights.plot_similar_states()
-        Prediction_Insights.plot_pred_vs_actual(row_start = 35) #Row start must be at least 30
+        plot_normalized(normalized_df, State_Compile)
+        Prediction_Insights.plot_pred_vs_actual(row_start = test_row_start)
         Prediction_Insights.forecast_to_future(SD_delay = SD_delay)
     #Plots in notebooks/EDA.ipynb

@@ -98,8 +98,6 @@ def fill_blank_known_ts(pred_df, total_y, row_start, row_end = 'all'):
     col_start = pred_df.columns.get_loc('New_Cases_per_pop(t-1)')
     try:
         row_start = pred_df.index.get_loc(row_start)
-    except:
-        breakpoint()
     if type(total_y) is pd.Series:
         pred_df.iloc[row_start, col_start] = total_y.values[-1]
     else:
