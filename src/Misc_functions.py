@@ -96,8 +96,7 @@ def fill_blank_known_ts(pred_df, total_y, row_start, row_end = 'all'):
         row_end = pred_df.index.get_loc(row_end)
     # pred_df.fillna(0, inplace=True)
     col_start = pred_df.columns.get_loc('New_Cases_per_pop(t-1)')
-    try:
-        row_start = pred_df.index.get_loc(row_start)
+    row_start = pred_df.index.get_loc(row_start)
     if type(total_y) is pd.Series:
         pred_df.iloc[row_start, col_start] = total_y.values[-1]
     else:
@@ -209,7 +208,7 @@ def normalize_days(compiled_state_df, percent_max= 0.25):
         normalized_df = normalized_df.append(specific_df)
     return normalized_df.reset_index(drop = True)
 
-def plot_normalized(normalized_df, Compiled_State_obj):
+def plot_normalized(normalized_df, Compiled_State_obj, save = None):
     min_day = Compiled_State_obj.min_days
     train_test_split = Compiled_State_obj.rf.train_test_split
     states = normalized_df['state(t)'].unique()
@@ -232,4 +231,6 @@ def plot_normalized(normalized_df, Compiled_State_obj):
     ax.set_ylabel('Daily New Cases/1M Pop')
     ax.legend()
     fig.tight_layout()
+    if save != None:
+        fig.savefig(save, dpi = 300)
     fig.show()

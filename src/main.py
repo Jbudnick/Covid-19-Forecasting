@@ -75,8 +75,8 @@ if __name__ == '__main__':
         feat_importances = State_Compile.get_feature_importances()
         print(feat_importances)
         Prediction_Insights = Predictions(covid_df, state, similar_states, State_Compile)
-        Prediction_Insights.plot_similar_states()
-        plot_normalized(normalized_df, State_Compile)
-        Prediction_Insights.plot_pred_vs_actual(row_start = test_row_start)
-        Prediction_Insights.forecast_to_future(SD_delay = SD_delay)
+        Prediction_Insights.plot_similar_states(save = None)
+        plot_normalized(normalized_df, State_Compile, save = None)
+        Prediction_Insights.plot_pred_vs_actual(row_start = test_row_start, save = None)
+        Prediction_Insights.forecast_to_future(SD_delay = SD_delay, save = None)
     #Plots in notebooks/EDA.ipynb
