@@ -80,6 +80,74 @@ The states with a recovery factor of 1 are experiencing more new cases per perso
 
 ## Model Results and Forecasting per State
 
+#### Alabama
+<p>
+<img src="images/Californiasimilarplots.png" width="1000">
+<p>
+
+<p>
+<img src="images/Californianormalized.png" width="1000">
+<p>
+
+<p>
+<img src="images/Californiavalidity.png" width="1000">
+<p>
+
+<p>
+<img src="images/Californiafuture.png" width="1000">
+<p>
+
+#### Arizona
+<p>
+<img src="images/Arizonasimilarplots.png" width="1000">
+<p>
+
+<p>
+<img src="images/Arizonanormalized.png" width="1000">
+<p>
+
+<p>
+<img src="images/Arizonavalidity.png" width="1000">
+<p>
+
+<p>
+<img src="images/Arizonafuture.png" width="1000">
+<p>
+
+#### Arkansas
+<p>
+<img src="images/Arkansassimilarplots.png" width="1000">
+<p>
+
+<p>
+<img src="images/Arkansasnormalized.png" width="1000">
+<p>
+
+<p>
+<img src="images/Arkansasvalidity.png" width="1000">
+<p>
+
+<p>
+<img src="images/Arkansasfuture.png" width="1000">
+<p>
+
+#### California
+<p>
+<img src="images/Californiasimilarplots.png" width="1000">
+<p>
+
+<p>
+<img src="images/Californianormalized.png" width="1000">
+<p>
+
+<p>
+<img src="images/Californiavalidity.png" width="1000">
+<p>
+
+<p>
+<img src="images/Californiafuture.png" width="1000">
+<p>
+
 #### North Carolina
 <p>
 <img src="images/North_Carolinasimilarplots.png" width="1000">
@@ -97,22 +165,22 @@ The states with a recovery factor of 1 are experiencing more new cases per perso
 <img src="images/North_Carolinafuture.png" width="1000">
 <p>
 
-#### South Carolina
+#### Mississippi
 
 <p>
-<img src="images/South_Carolinasimilarplots.png" width="1000">
-<p>
-
-<p>
-<img src="images/South_Carolinanormalized.png" width="1000">
+<img src="images/Mississippisimilarplots.png" width="1000">
 <p>
 
 <p>
-<img src="images/South_Carolinavalidity.png" width="1000">
+<img src="images/Mississippinormalized.png" width="1000">
 <p>
 
 <p>
-<img src="images/South_Carolinafuture.png" width="1000">
+<img src="images/Mississippivalidity.png" width="1000">
+<p>
+
+<p>
+<img src="images/Mississippifuture.png" width="1000">
 <p>
 
 #### Oklahoma
