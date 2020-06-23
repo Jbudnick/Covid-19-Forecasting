@@ -65,7 +65,7 @@ if __name__ == '__main__':
     if len(similar_states) == 0:
         print('No similar states found. Try to expand recovery_factor_min and pop_density_tolerance.')
     else:
-        print("The Most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
+        print("The most similar states to {} that meet the comparable parameters are: {}. These will be used to predict for {}.".format(
             state, similar_states, state))
         State_Compile = Combined_State_Analysis(covid_df, state, similar_states, train_test_split=train_test_split, min_days=0, print_err=True, normalize_day=normalize_days, percent_of_max_cases = percent_max_cases)
 

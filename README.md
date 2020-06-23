@@ -97,7 +97,42 @@ The states with a recovery factor of 1 are experiencing more new cases per perso
 <img src="images/North_Carolinafuture.png" width="1000">
 <p>
 
-#### North Carolina
+#### South Carolina
+
+<p>
+<img src="images/South_Carolinasimilarplots.png" width="1000">
+<p>
+
+<p>
+<img src="images/South_Carolinanormalized.png" width="1000">
+<p>
+
+<p>
+<img src="images/South_Carolinavalidity.png" width="1000">
+<p>
+
+<p>
+<img src="images/South_Carolinafuture.png" width="1000">
+<p>
+
+#### Oklahoma
+
+<p>
+<img src="images/Oklahomasimilarplots.png" width="1000">
+<p>
+
+<p>
+<img src="images/Oklahomanormalized.png" width="1000">
+<p>
+
+<p>
+<img src="images/Oklahomavalidity.png" width="1000">
+<p>
+
+<p>
+<img src="images/Oklahomafuture.png" width="1000">
+<p>
+
 
 ## Forecasting
 In order to set up a regression model and predict future values, I converted my original dataframe into a time series matrix and I decided to use a prediction of 21 days using the moving average data points as this seemed like a large enough interval to cover any cause-effects between the features and the target that may be lagging behind. The time series ended up with about 188 features in all, so I decided to use a random forest on my model as it can support high dimensionality with high accuracy.
