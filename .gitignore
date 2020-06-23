@@ -19,7 +19,6 @@
 *.xml
 *.numbers
 
-\images
 .DS_Store
 
 ### macOS ###

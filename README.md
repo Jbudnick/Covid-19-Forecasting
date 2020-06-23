@@ -161,6 +161,7 @@ Unfortunately, it does not look like the occurrence of new cases of COVID-19 are
 
 ## Future Plans/Ideas for improvement
 - Replace states with counties and run county by county analysis (better results for varying population densities)
+- Apply a scalar value to multiply the x axis on specific curves so that the shapes more closely resemble each other to improve results
 - Provide sample of X and y matrices
 - Pursue original goal of predicting economic recovery; forecast recovery out further and use recession unemployment data to forecast
 - Forecast out futher; hopefully will be able to pinpoint a recovery date range
