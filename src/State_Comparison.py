@@ -154,7 +154,7 @@ class Combined_State_Analysis(reg_model):
             self.y_rf = self.y_norm[self.X_norm['days_elapsed(t)'] >= min_days]
 
             self.state_to_predict_norm = normalize_days(self.state_to_predict_analysis, percent_max = percent_of_max_cases)
-            #Use this attribute to convert from days_elapsed to days_since_start of epidemic for predicted state only
+            #Use this attribute to convert from days_elapsed to days_since_start of pandemic for predicted state only
             self.days_to_normalize_diff = self.state_to_predict_norm['days_elapsed(t)'].min(
             ) - self.state_to_predict_norm['days_since_start'].min()
         else:
