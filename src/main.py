@@ -54,14 +54,19 @@ def plot_part_dep(State_Compile, use_ice = False):
                       'residential(t)': 'Activity At Home'}, inplace=True)
 
     if use_ice == True:
-        fig, axes = plt.subplots(3,3, figsize = (40,40))
+        fig, axes = plt.subplots(3,3, figsize = (20,20))
         y = State_Compile.y_norm
         cols = X.columns
         cols_interest_ind = X.columns.get_loc('days_elapsed(t)')
         columns_of_interest = X.columns[cols_interest_ind:]
         for i, ax in enumerate(axes.flatten()):
             ice_df = ice(X, columns_of_interest[i], State_Compile.rf.model.predict)
-            ice_plot(ice_df, alpha = 0.25, ax = ax)
+            try:
+                ice_plot(ice_df, alpha = 0.25, ax=ax, plot_points=False,
+                         color_by= None, cmap = None)
+            except:
+                ice_plot(ice_df, alpha = 0.25, ax=ax, plot_points=False,
+                         color_by= None, cmap=None)
             ax.set_title('ICE Curve')
             ax.set_xlabel(columns_of_interest[i])
             ax.set_ylabel('Esimated Daily Number of Cases/1M Pop')

@@ -3,11 +3,34 @@
 <p>
 
 # Forecasting the Future of COVID-19 with Social Distancing 
-The question on everyone's mind these days seems to be when will things go back to normal? The United States, as well as the rest of the world, has been hit hard by the COVID-19 pandemic and we are all hoping that the end is in sight. With the implementation of social distancing playing a massive role in our lives today, what level of social distancing should be maintained so that we see a consistent drop in the number of new cases of the virus? 
 
-In this project, I have created a model that will predict a forecast of daily new cases per capita for a state currently experiencing the maximum number of cases with different levels of social distancing by drawing a subset of states similar in population density that are further along in recovery by normalizing the data to days since outbreak in each state, and training a random forest model on their data and using it to make predictions on the future.
+## Table of Contents
+<!-- vscode-markdown-toc -->
+* 1. [Data + Cleaning](#DataCleaning)
+* 2. [Exploratory Data Analysis](#ExploratoryDataAnalysis)
+* 3. [Model Results and Forecasting per State](#ModelResultsandForecastingperState)
+		* 3.1. [Alabama](#Alabama)
+		* 3.2. [Arizona](#Arizona)
+		* 3.3. [Arkansas](#Arkansas)
+		* 3.4. [California](#California)
+		* 3.5. [Mississippi](#Mississippi)
+		* 3.6. [North Carolina](#NorthCarolina)
+		* 3.7. [Oklahoma](#Oklahoma)
+* 4. [Conclusion](#Conclusion)
+* 5. [Future Ideas for Improvement](#FutureIdeasforImprovement)
+* 6. [Data Sources](#DataSources:)
 
-## Data + Cleaning
+<!-- vscode-markdown-toc-config
+	numbering=true
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc -->
+
+The question on everyone's mind these days seems to be the same: when will things go back to normal? The United States has been hit especially hard by the COVID-19 pandemic and we are all hoping that the end is in sight. With the implementation of social distancing playing a massive role in our lives today, what level of social distancing should be maintained so that we see a consistent drop in the number of new cases of the virus? 
+
+In this project, I have created a model that will predict a forecast of daily new cases per capita for a state currently experiencing the maximum number of cases with different levels of social distancing by drawing a subset of states similar in population density that are further along in recovery by normalizing the data to days since outbreak in each state, and training a random forest model on the data and using it to assess the most effective areas of social distancing and make predictions on the future.
+
+##  1. <a name='DataCleaning'></a>Data + Cleaning
 
 I used 4 different datasets for this study and combined them into a single DataFrame for analysis and prediction.
 
@@ -47,7 +70,7 @@ Please note that this model has two assumptions:
 
 Please see the Model Results and Forecasting per State section for examples of this model on several different states.
 
-## Exploratory Data Analysis
+##  2. <a name='ExploratoryDataAnalysis'></a>Exploratory Data Analysis
 Although there has been news about a shortage of tests being available for the virus in the USA, the data show a very heavy correlation between deaths and new cases, so I decided to focus on new cases instead of deaths, as there is data earlier and a greater amount of data available for cases. 
 <p>
 <img src="images/DeathVsCases.png" width="800">
@@ -90,7 +113,7 @@ The bar graph below illustrates the extent of recovery for the least recovered s
 
 The states with a recovery factor of 1 are experiencing more new cases per person than ever before. By training a random forest model of a subset of states that are similar in population density as these states and futher along in recovery, I can extract insights that could help theses states with the most effective features that are likely to reduce the number of daily new cases in the future.
 
-## Model Results and Forecasting per State
+##  3. <a name='ModelResultsandForecastingperState'></a>Model Results and Forecasting per State
 
 The criteria for states to predict and draw insights for are as follows:
 - Low recovery factor
@@ -99,7 +122,7 @@ The criteria for states to predict and draw insights for are as follows:
 
 The following states that meet this criteria best as of June 14, 2020 are Alabama, Arizona, Arkansas, California, Mississippi, North Carolina, and Oklahoma. These states are analyzed below.
 
-#### Alabama
+####  3.1. <a name='Alabama'></a>Alabama
 
 The first step of the model is to select a subset of states with similar population densities as Alabama. With a minimum recovery factor of 1.7 (1.7 times as many new cases were recorded at the maximum as the most recent reporting - moving average applied) and a population density within plus or minus 30 people per square mile, the resulting states are plotted below.
 <p>
@@ -125,23 +148,35 @@ By tweaking the social distance delay to 7 days and modifying the aforementioned
 The model underpredicts the actual observed value, but the model does seem to catch on to a positive trend based on how people in Alabama are social distancing.
 
 Based on the random forest model, the most important features are shown below.
-(Put feature importances here)
+<p>
+<img src="images/Alabamafeatures.png" width="1000">
+<p>
 
 The estimated fractional levels of public activity relative to pre-pandemic levels (January 2020) are plotted with all other factors held constant are shown.
-(Partial dependency plots)
+<p>
+<img src="images/Alabamapart_dep.png" width="1000">
+<p>
+
+<p>
+<img src="images/AlabamaICE.png" width="1000">
+<p>
 
 Based on the feature importances, my recommendations for the states of Alabama would be to:
 
-(Percentages for max and min social distancing)
+Shown below is a table of the maximum and minimum levels of social distancing found in the training set for Alabama as a percentage of pre-pandemic levels (January 2020).
+|                     |Retail/Recreation %|Grocery/Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
+|Low Public Activity  |44.3               |68.1              |75.6   |39                |46.6        |121          |44       |
+|High Public Activity |109                |117.1             |312.7  |108               |103.1       |99.1         |152.4    |
 
-Projecting this model out in the future shows that it is likely Alabama will see a small decrease in the number of new cases with maximized social distancing.
+Projecting this model out in the future using these values shows that it is likely Alabama will see a small decrease in the number of new cases with maximized social distancing.
 
 <p>
 <img src="images/Alabamafuture.png" width="1000">
 <p>
 
 
-#### Arizona
+####  3.2. <a name='Arizona'></a>Arizona
 
 Implementing the same model for Arizona results in similar states plotted below:
 <p>
@@ -154,7 +189,23 @@ Implementing the same model for Arizona results in similar states plotted below:
 
 <p>
 <img src="images/Arizonavalidity.png" width="1000">
+
 <p>
+<img src="images/Arizonafeatures.png" width="1000">
+<p>
+
+<p>
+<img src="images/Arizonapart_dep.png" width="1000">
+<p>
+
+<p>
+<img src="images/ArizonaICE.png" width="1000">
+<p>
+
+|                     |Retail/Recreation %|Grocery/Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
+|Low Public Activity  |44.3               |68.1              | 63.7  |39.0              |46.6        |121.0        |44.0     |
+|High Public Activity |101.3              |120.4             |293.3  |102.4             |79.0        | 105.9       |154.1    |
 
 The results for Arizona are similar - the model slightly underpredicts the later future values but catches on to a positive trend.
 
@@ -162,7 +213,7 @@ The results for Arizona are similar - the model slightly underpredicts the later
 <img src="images/Arizonafuture.png" width="1000">
 <p>
 
-#### Arkansas
+####  3.3. <a name='Arkansas'></a>Arkansas
 <p>
 <img src="images/Arkansassimilarplots.png" width="1000">
 <p>
@@ -176,6 +227,18 @@ The results for Arizona are similar - the model slightly underpredicts the later
 <p>
 
 The model performance plot shows a very strong ability for the model to capture the trend in the data.
+<p>
+<img src="images/Arkansasfeatures.png" width="1000">
+<p>
+
+The estimated fractional levels of public activity relative to pre-pandemic levels (January 2020) are plotted with all other factors held constant are shown.
+<p>
+<img src="images/Arkansaspart_dep.png" width="1000">
+<p>
+
+<p>
+<img src="images/ArkansasICE.png" width="1000">
+<p>
 
 <p>
 <img src="images/Arkansasfuture.png" width="1000">
@@ -183,7 +246,7 @@ The model performance plot shows a very strong ability for the model to capture 
 
 Forecasting these values out into the future for Arkansas, after a few days it looks like increased social distancing would have a considerable effect.
 
-#### California
+####  3.4. <a name='California'></a>California
 <p>
 <img src="images/Californiasimilarplots.png" width="1000">
 <p>
@@ -201,12 +264,23 @@ The model does a decent job predicting future values.
 <p>
 
 Increasing social distancing in California appears to have a drastic effect in the number of new cases in the future.
+<p>
+<img src="images/Californiafeatures.png" width="1000">
+<p>
+
+<p>
+<img src="images/Californiapart_dep.png" width="1000">
+<p>
+
+<p>
+<img src="images/CaliforniaICE.png" width="1000">
+<p>
 
 <p>
 <img src="images/Californiafuture.png" width="1000">
 <p>
 
-#### Mississippi
+####  3.5. <a name='Mississippi'></a>Mississippi
 
 <p>
 <img src="images/Mississippisimilarplots.png" width="1000">
@@ -223,12 +297,27 @@ The model for Mississippi appears to overpredict the data slightly, but a positi
 <p>
 
 Forecasting into the future, it looks like the number of new cases is only going to increase if social distancing is relaxed. However, the curve can be flattened if it is maintained.
+<p>
+<img src="images/Mississippifeatures.png" width="1000">
+<p>
+
+<p>
+<img src="images/Mississippipart_dep.png" width="1000">
+<p>
+
+<p>
+<img src="images/MississippiICE.png" width="1000">
+<p>
 
 <p>
 <img src="images/Mississippifuture.png" width="1000">
 <p>
 
-#### North Carolina
+<p>
+<img src="images/Mississippifuture.png" width="1000">
+<p>
+
+####  3.6. <a name='NorthCarolina'></a>North Carolina
 <p>
 <img src="images/North_Carolinasimilarplots.png" width="1000">
 <p>
@@ -244,12 +333,26 @@ The model does a great job predicting the data for North Carolina.
 <p>
 
 Unfortunately, it looks like the number of new cases in North Carolina is going to keep climbing for the foreseeable future according to this model. However, the increase is much smaller with low public activity.
+<p>
+<img src="images/North_Carolinafeatures.png" width="1000">
+<p>
+<p>
+<img src="images/North_Carolinapart_dep.png" width="1000">
+<p>
+
+<p>
+<img src="images/North_CarolinaICE.png" width="1000">
+<p>
 
 <p>
 <img src="images/North_Carolinafuture.png" width="1000">
 <p>
 
-#### Oklahoma
+<p>
+<img src="images/North_Carolinafuture.png" width="1000">
+<p>
+
+####  3.7. <a name='Oklahoma'></a>Oklahoma
 
 <p>
 <img src="images/Oklahomasimilarplots.png" width="1000">
@@ -264,15 +367,26 @@ Unfortunately, it looks like the number of new cases in North Carolina is going 
 <p>
 
 It appears that COVID-19 is on an exponential rise in Oklahoma, and there is a massive surge predicted in the number of new cases. However, the damage can be reduced by limiting public activity during this time.
+<p>
+<img src="images/Oklahomafeatures.png" width="1000">
+<p>
+
+<p>
+<img src="images/Oklahomapart_dep.png" width="1000">
+<p>
+
+<p>
+<img src="images/OklahomaICE.png" width="1000">
+<p>
 
 <p>
 <img src="images/Oklahomafuture.png" width="1000">
 <p>
 
-## Conclusion
+##  4. <a name='Conclusion'></a>Conclusion
 Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future in the states currently struggling most with the virus, and a second wave of infections is avoided.
 
-## Future Ideas for Improvement
+##  5. <a name='FutureIdeasforImprovement'></a>Future Ideas for Improvement
 - Replace states with counties and run county by county analysis (better results for varying population densities)
 - Apply a scalar value to multiply the x axis on specific curves so that the shapes more closely resemble each other to improve results
 - Pursue original goal of predicting economic recovery; forecast recovery out further and use recession unemployment data to forecast
@@ -285,7 +399,7 @@ Unfortunately, it does not look like the occurrence of new cases of COVID-19 are
     - Weather data - Rumors that the virus doesn't do well in warm/humid conditions
 - Use web-scraping and NLP to analyze the type of words being used in recent economic news (ratio of words such as "lockdown", "quarantine", "extended" to words like "protest", "end", "open") to determine better scaling factors for my prediction matrix. 
 
-## Data Sources:
+##  6. <a name='DataSources:'></a>Data Sources
 
 Header image : https://spectrumlocalnews.com/nc/triangle-sandhills/tying-it-together-with-tim-boyum/2020/04/28/tying-it-together-with-tim-boyum-checking-the-pulse-on-nc-s-economic-health-during-the-coronavirus-crisis
 https://www.xifin.com/resources/blog/202004/covid-19-maintaining-momentum-during-volume-recessions 
