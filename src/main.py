@@ -54,7 +54,7 @@ def plot_part_dep(State_Compile, use_ice = False):
                       'residential(t)': 'Activity At Home'}, inplace=True)
 
     if use_ice == True:
-        fig, axes = plt.subplots(3,3, figsize = (20,20))
+        fig, axes = plt.subplots(3,3, figsize = (15,15))
         y = State_Compile.y_norm
         cols = X.columns
         cols_interest_ind = X.columns.get_loc('days_elapsed(t)')
@@ -79,8 +79,8 @@ def plot_part_dep(State_Compile, use_ice = False):
         axes = fig.get_axes()
         for ax in axes:
             ax.set_ylabel('Estimate of Daily New Cases/1M Pop')
-        fig.set_figwidth(30)
-        fig.set_figheight(30)
+        fig.set_figwidth(15)
+        fig.set_figheight(15)
         fig.savefig('images/{}part_dep'.format(state_to_predict), dpi=300)
 
 def plot_feature_importances(State_Compile):

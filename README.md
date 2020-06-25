@@ -26,6 +26,8 @@
 	/vscode-markdown-toc-config -->
 <!-- /vscode-markdown-toc -->
 
+## Introduction
+
 The question on everyone's mind these days seems to be the same: when will things go back to normal? The United States has been hit especially hard by the COVID-19 pandemic and we are all hoping that the end is in sight. With the implementation of social distancing playing a massive role in our lives today, what level of social distancing should be maintained so that we see a consistent drop in the number of new cases of the virus? 
 
 In this project, I have created a model that will predict a forecast of daily new cases per capita for a state currently experiencing the maximum number of cases with different levels of social distancing by drawing a subset of states similar in population density that are further along in recovery by normalizing the data to days since outbreak in each state, and training a random forest model on the data and using it to assess the most effective areas of social distancing and make predictions on the future.
@@ -87,7 +89,7 @@ Shown below is an early random forest model based on the state of New York; sinc
 <p>
 <img src="images/NY_New_100.png">
 <p>
-*Please note that the figure below represents the data available as of early May 2020.
+*Please note that the figure above represents the data available as of early May 2020.
 
 Looking at plots of New Cases versus the amount of public activity before the social distancing moving average delay parameter was set, there seems to be a surprising negative trend between social distancing attributes and daily new cases per population. There seems to be a positive rate of of new cases to presence at home, which is also the opposite of what I was expecting.
 <p>
@@ -113,7 +115,7 @@ The bar graph below illustrates the extent of recovery for the least recovered s
 
 The states with a recovery factor of 1 are experiencing more new cases per person than ever before. By training a random forest model of a subset of states that are similar in population density as these states and futher along in recovery, I can extract insights that could help theses states with the most effective features that are likely to reduce the number of daily new cases in the future.
 
-##  3. <a name='ModelResultsandForecastingperState'></a>Model Results and Forecasting per State
+##  3. <a name='ModelResultsandForecastingperState'></a>Model Results and Forecasting Per State
 
 The criteria for states to predict and draw insights for are as follows:
 - Low recovery factor
@@ -152,19 +154,15 @@ Based on the random forest model, the most important features are shown below.
 <img src="images/Alabamafeatures.png" width="1000">
 <p>
 
-The estimated fractional levels of public activity relative to pre-pandemic levels (January 2020) are plotted with all other factors held constant are shown.
-<p>
-<img src="images/Alabamapart_dep.png" width="1000">
-<p>
-
+To determine the individual effect of these features, individual conditional expectation (ICE) plots are generated below. The fractional levels of public activity relative to pre-pandemic levels (January 2020) are plotted against the esimated number of daily new cases with all other factors held constant. The most important features was deemed to be grocery and pharmacy activity, but this is likely due to people reducing social distancing in Lousiana after new cases started dropping. Transit stations and workplaces are the next most important features.
 <p>
 <img src="images/AlabamaICE.png" width="1000">
 <p>
 
-Based on the feature importances, my recommendations for the states of Alabama would be to:
+Based on the feature importances and the ICE plots, my recommendations for the states of Alabama to reduce the number of new cases would be to limit the capacity of transit stations to 65% of occupancy relative to pre-pandemic levels until the number of daily new cases goes down to 75 per 1 million residents, at which point this may be relaxed slightly. Based on the model, activity at workplaces should be limited to 58% of pre-pandemic occupancy at least until the number of daily cases decreases to 100 per 1 million citizens or less.
 
 Shown below is a table of the maximum and minimum levels of social distancing found in the training set for Alabama as a percentage of pre-pandemic levels (January 2020).
-|                     |Retail/Recreation %|Grocery/Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|                     |Retail/ Recreation %|Grocery/ Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
 |---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
 |Low Public Activity  |44.3               |68.1              |75.6   |39                |46.6        |121          |44       |
 |High Public Activity |109                |117.1             |312.7  |108               |103.1       |99.1         |152.4    |
@@ -174,7 +172,6 @@ Projecting this model out in the future using these values shows that it is like
 <p>
 <img src="images/Alabamafuture.png" width="1000">
 <p>
-
 
 ####  3.2. <a name='Arizona'></a>Arizona
 
@@ -201,11 +198,12 @@ Implementing the same model for Arizona results in similar states plotted below:
 <p>
 <img src="images/ArizonaICE.png" width="1000">
 <p>
+Shown below is a table of the maximum and minimum levels of social distancing found in the training set for Arizona as a percentage of pre-pandemic levels (January 2020).
 
-|                     |Retail/Recreation %|Grocery/Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|                     |Retail/ Recreation %|Grocery/ Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
 |---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
 |Low Public Activity  |44.3               |68.1              | 63.7  |39.0              |46.6        |121.0        |44.0     |
-|High Public Activity |101.3              |120.4             |293.3  |102.4             |79.0        | 105.9       |154.1    |
+|High Public Activity |101.3              |120.4             |293.3  |102.4             |79.0        |105.9        |154.1    |
 
 The results for Arizona are similar - the model slightly underpredicts the later future values but catches on to a positive trend.
 
@@ -239,6 +237,12 @@ The estimated fractional levels of public activity relative to pre-pandemic leve
 <p>
 <img src="images/ArkansasICE.png" width="1000">
 <p>
+Shown below is a table of the maximum and minimum levels of social distancing found in the training set for Arkansas as a percentage of pre-pandemic levels (January 2020).
+
+|                     |Retail/ Recreation %|Grocery/ Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
+|Low Public Activity  |44.3               |68.1              | 63.7  |39.0              |46.6        |121.0        |44.0     |
+|High Public Activity |101.3              |116.0             |249.9  |108.0             |79.1        |105.6        |151.1    |
 
 <p>
 <img src="images/Arkansasfuture.png" width="1000">
@@ -275,6 +279,12 @@ Increasing social distancing in California appears to have a drastic effect in t
 <p>
 <img src="images/CaliforniaICE.png" width="1000">
 <p>
+Shown below is a table of the maximum and minimum levels of social distancing found in the training set for California as a percentage of pre-pandemic levels (January 2020).
+
+|                     |Retail/ Recreation %|Grocery/ Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
+|Low Public Activity  |45.0               |67.4              |32.4   |28.9              |47.9        |122.1        |29.5     |
+|High Public Activity |110.1              |127.3             |266.4  |105.3             |102.7       |98.6         |138.1    |
 
 <p>
 <img src="images/Californiafuture.png" width="1000">
@@ -308,10 +318,12 @@ Forecasting into the future, it looks like the number of new cases is only going
 <p>
 <img src="images/MississippiICE.png" width="1000">
 <p>
+Shown below is a table of the maximum and minimum levels of social distancing found in the training set for Mississippi as a percentage of pre-pandemic levels (January 2020).
 
-<p>
-<img src="images/Mississippifuture.png" width="1000">
-<p>
+|                     |Retail/ Recreation %|Grocery/ Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
+|Low Public Activity  |44.3               |68.1              |63.7   |39.0              |46.6        |121.0        |44.0     |
+|High Public Activity |101.3              |120.4             |293.3  |108.0             |78.9        |105.6        |154.1    |
 
 <p>
 <img src="images/Mississippifuture.png" width="1000">
@@ -343,10 +355,12 @@ Unfortunately, it looks like the number of new cases in North Carolina is going 
 <p>
 <img src="images/North_CarolinaICE.png" width="1000">
 <p>
+Shown below is a table of the maximum and minimum levels of social distancing found in the training set for North Carolina as a percentage of pre-pandemic levels (January 2020).
 
-<p>
-<img src="images/North_Carolinafuture.png" width="1000">
-<p>
+|                     |Retail/ Recreation %|Grocery/ Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
+|Low Public Activity  |45.0               |67.4              |32.4   |28.9              |48.7        |122.1        |29.5     |
+|High Public Activity |110.1              |127.3             |169.0  |105.3             |102.7       |98.6         |120.9    |
 
 <p>
 <img src="images/North_Carolinafuture.png" width="1000">
@@ -378,13 +392,19 @@ It appears that COVID-19 is on an exponential rise in Oklahoma, and there is a m
 <p>
 <img src="images/OklahomaICE.png" width="1000">
 <p>
+Shown below is a table of the maximum and minimum levels of social distancing found in the training set for Oklahoma as a percentage of pre-pandemic levels (January 2020).
+
+|                     |Retail/ Recreation %|Grocery/ Pharmacy %|Parks %|Transit Stations %|Workplaces %|Residential %|Driving %|
+|---------------------|-------------------|------------------|-------|------------------|------------|-------------|---------|
+|Low Public Activity  |44.3               |68.1              |63.7   |39.0              |46.6        |121.0        |44.0     |
+|High Public Activity |101.3              |120.4             |293.3  |108.0             |78.9        |105.6        |154.1    |
 
 <p>
 <img src="images/Oklahomafuture.png" width="1000">
 <p>
 
 ##  4. <a name='Conclusion'></a>Conclusion
-Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future in the states currently struggling most with the virus, and a second wave of infections is avoided.
+Unfortunately, it does not look like the occurrence of new cases of COVID-19 are going away anytime soon. Although everyone is eager to finally get out of the house after so long, it looks like social distancing is effective in preventing the spread of the virus, with a time delay, and hopefully we will continue to see numbers go down further in the near future in the states currently struggling most with the virus, and a second wave of infections will be avoided.
 
 ##  5. <a name='FutureIdeasforImprovement'></a>Future Ideas for Improvement
 - Replace states with counties and run county by county analysis (better results for varying population densities)
