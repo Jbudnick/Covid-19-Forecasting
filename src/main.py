@@ -175,7 +175,7 @@ def run_model(state, min_recovery_factor=1.2, pop_density_tolerance=20, SD_delay
 if __name__ == '__main__':
     #Specify state to draw predictions for below, and similar state finding parameters
     #Similar_States.master_pop_density_df[Similar_States.master_pop_density_df['Recovery Factor'] < 1.1]
-    state = 'North Carolina'
+    state = 'Oklahoma'
     min_recovery_factor = 1.2
     pop_density_tolerance = 20
     SD_delay = 7
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     test_row_start = 35
     normalize_days = True
     #Define outbreak start
-    percent_max_cases = 0.25
+    percent_max_cases = 0.5
 
 
     run_model(state, min_recovery_factor, pop_density_tolerance, SD_delay,

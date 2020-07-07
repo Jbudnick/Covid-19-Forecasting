@@ -107,7 +107,7 @@ def load_and_clean_data(use_internet=True, new_cases_per_pop=True):
         mobility_raw_df = pd.read_csv(
             'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv?cachebust=694ae9957380f150', low_memory=False, parse_dates=['date'])
         transp_raw_df = pd.read_csv(
-            'https://covid19-static.cdn-apple.com/covid19-mobility-data/2010HotfixDev17/v3/en-us/applemobilitytrends-2020-06-13.csv')
+            'https://covid19-static.cdn-apple.com/covid19-mobility-data/2011HotfixDev15/v3/en-us/applemobilitytrends-2020-07-05.csv')
     else:
         covid_raw_df = pd.read_csv(
             'data/covid-19-data/us-states.csv', parse_dates=['date'])
@@ -220,13 +220,18 @@ def fill_na_with_surround(df, cols = 'all'):
                 sub_list.append(sub_list[-1] + 1)
                 relevant_cols = ['state', col]
                 val_1 = df.loc[sub_list, col].iloc[0]
-                if df.loc[sub_list[0], 'state'] == df.loc[sub_list[-1], 'state']:
-                    val_2 = df.loc[sub_list, col].iloc[-1]
-                    avg_val = (val_1 + val_2)/2
-                    df.loc[sub_list, col] = df.loc[sub_list,
-                                                   col].fillna(avg_val)
-                else:
-                    df.loc[sub_list, col] = df.loc[sub_list, col].fillna(val_1)
+                in_index = sub_list[-1] <= df.index.max()
+                try:
+                    if in_index and df.loc[sub_list[0], 'state'] == df.loc[sub_list[-1], 'state']:
+                        val_2 = df.loc[sub_list, col].iloc[-1]
+                        avg_val = (val_1 + val_2)/2
+                        df.loc[sub_list, col] = df.loc[sub_list,
+                                                    col].fillna(avg_val)
+                    else:
+                        sub_list.pop()
+                        df.loc[sub_list, col] = df.loc[sub_list, col].fillna(val_1)
+                except:
+                    breakpoint()
     return df
 
 def convert_to_moving_avg_df(covid_df, states = 'all', SD_delay = 10):

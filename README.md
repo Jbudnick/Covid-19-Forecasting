@@ -414,10 +414,12 @@ Unfortunately, it does not look like the occurrence of new cases of COVID-19 are
     - Weather data - Rumors that the virus doesn't do well in warm/humid conditions
 - Use web-scraping and NLP to analyze the type of words being used in recent economic news (ratio of words such as "lockdown", "quarantine", "extended" to words like "protest", "end", "open") to determine better scaling factors for prediction matrix 
 
-##  7. <a name='DataSources'></a>Data Sources
+##  7. <a name='DataSources'></a>Data Sources / References
 
 Header image : https://spectrumlocalnews.com/nc/triangle-sandhills/tying-it-together-with-tim-boyum/2020/04/28/tying-it-together-with-tim-boyum-checking-the-pulse-on-nc-s-economic-health-during-the-coronavirus-crisis
 https://www.xifin.com/resources/blog/202004/covid-19-maintaining-momentum-during-volume-recessions 
+
+https://machinelearningmastery.com/convert-time-series-supervised-learning-problem-python/
 
 https://github.com/nytimes/covid-19-data/blob/master/us-states.csv 
 
