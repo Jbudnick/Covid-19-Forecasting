@@ -54,7 +54,7 @@ def plot_part_dep(State_Compile, use_ice = False):
                       'residential(t)': 'Activity At Home'}, inplace=True)
 
     if use_ice == True:
-        fig, axes = plt.subplots(3,3, figsize = (15,15))
+        fig, axes = plt.subplots(3,3, figsize = (20,20))
         y = State_Compile.y_norm
         cols = X.columns
         cols_interest_ind = X.columns.get_loc('days_elapsed(t)')

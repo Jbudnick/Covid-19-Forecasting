@@ -228,7 +228,8 @@ def plot_normalized(normalized_df, Compiled_State_obj, save = None):
     ax.axvline(min_day, label = 'Minimum Day for Training Set', ls = '-.', c = 'black', lw = 1)
     ax.axvline(train_test_split, label = 'Train/Test Split', ls = '-.', c = 'grey', lw = 1)
     ax.set_title('Daily New Cases Plot (Normalized)')
-    ax.set_xlabel('Days Since {}% of Maximum Cases'.format(Compiled_State_obj.percent_of_max * 100))
+    perc = Compiled_State_obj.percent_of_max * 100
+    ax.set_xlabel('Days Since {}% of Maximum Cases'.format(round(perc, 2)))
     ax.set_ylabel('Daily New Cases/1M Pop')
     ax.legend()
     fig.tight_layout()

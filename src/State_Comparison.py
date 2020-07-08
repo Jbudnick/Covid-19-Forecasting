@@ -10,6 +10,7 @@ from pandas.plotting import register_matplotlib_converters
 import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib.ticker as ticker
+import datetime
 
 class Comparable_States(object):
     '''
@@ -252,6 +253,7 @@ class Predictions(Combined_State_Analysis):
         
         ax.legend()
         ax.set_title('States Similar to {} in Population Density'.format(self.state))
+        ax.set_xlim(datetime.date(2020, 3, 1))
         ax.set_xlabel('Date')
         ax.set_ylabel('New Cases/Day Per 1M Pop')
         plt.show()
