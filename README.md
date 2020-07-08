@@ -38,28 +38,28 @@ In this project, I have created a model that will predict a forecast of daily ne
 
 I used 4 different datasets for this study and combined them into a single DataFrame for analysis and prediction.
 
-New York Times: Github Repo of cases/deaths daily per state
+New York Times: Github Repo of cases/deaths daily per state<br>
 The New York Times offers dataset on the number of cases and deaths by COVID-19 per each state. I created a new column of daily new cases and divided these numbers by the state's population for each state for a fairer comparison from state to state, resulting in new cases per 1 million residents. To smooth out the many spikes in the number of new cases per day, I used a 7 day moving average and used this as the target variable.
 <p>
 <img src="images/Covid_Data.png" width="400">
 <p>
-Apple: Mobility Data
+Apple: Mobility Data<br>
 Apple offers a dataset on mobility that breaks categories into walking, driving, and transit. Unfortunately, walking and transit data are only available on a national and/or city level so I was only able to get driving data from this set. These data are reported as compared to a percentage of the baseline value measured on January 13th - this number was converted by 100 to get a multiplier of normal for each day. A 7 day moving average set 7-10 days in the past was then applied on this data.
 <p>
 <img src="images/AppleData.png" width="1000">
 <p>
 
-Google: Global Mobility Data
+Google: Global Mobility Data<br>
 From Google, I was able to get a massive dataset detailing mobility trends througout the past few months at grocery stores/ pharmacies, parks, transit stations, retail/recreation outlets, residential, and workplaces. This data was reported as the percent change from the baseline, the median value, for the corresponding day of the week, during the 5-week period Jan 3–Feb 6, 2020. To make this measurement consistent with the apple data, I added 100 and divided by 100 to get a multiplier of normal for each day. I also used a 7-10 day delayed 7 day moving average for these features as well, so that weekend trends were avoided and any correlation would be easier to see.
 <p>
 <img src="images/GoogleData.png" width="1000">
 <p>
 
-World Population Review
+World Population Review<br>
 I obtained state population density from the world population review and implemented it into my dataframe in order to create subsets states similar in population density.
 
 <p>
-<img src="images/flowchart.png" width="600">
+<img src="images/Flowchart.png" width="600">
 <p>
 
 Each of the preceeding datasets were combined into one Pandas DataFrame and cleaned. For missing mobility/social distancing entries, the average of the next surrounding values was used. A 21 day time lagged series of the target value (Daily New Cases) was then applied. In total, the dataset consistented of 30 features: 21 time lagged daily new cases, days since outbreak, 7 social distancing features, and state population density.
