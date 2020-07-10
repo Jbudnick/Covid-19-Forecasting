@@ -2,20 +2,20 @@
 ## Table of Contents
 
 <!-- vscode-markdown-toc -->
-* 1. [Introduction](#Introduction)
-* 2. [Data + Cleaning](#DataCleaning)
-* 3. [Exploratory Data Analysis](#ExploratoryDataAnalysis)
-* 4. [Model Results and Forecasting Per State](#ModelResultsandForecastingPerState)
-		* 4.1. [California](#California)
-		* 4.2. [Kentucky](#Kentucky)
-		* 4.3. [New Mexico](#NewMexico)
-		* 4.4. [North Carolina](#NorthCarolina)
-		* 4.5. [Ohio](#Ohio)
-		* 4.6. [Oregon](#Oregon)
-		* 4.7. [Tennessee](#Tennessee)
-* 5. [Conclusion](#Conclusion)
-* 6. [Future Ideas for Improvement](#FutureIdeasforImprovement)
-* 7. [Data Sources / References](#DataSourcesReferences)
+  1. [Introduction](#Introduction)
+  2. [Data + Cleaning](#DataCleaning)
+  3. [Exploratory Data Analysis](#ExploratoryDataAnalysis)
+  4. [Model Results and Forecasting Per State](#ModelResultsandForecastingPerState)<br>
+		  4.1. [California](#California)<br>
+		  4.2. [Kentucky](#Kentucky)<br>
+		  4.3. [New Mexico](#NewMexico)<br>
+		  4.4. [North Carolina](#NorthCarolina)<br>
+		  4.5. [Ohio](#Ohio)<br>
+		  4.6. [Oregon](#Oregon)<br>
+		  4.7. [Tennessee](#Tennessee)<br>
+  5. [Conclusion](#Conclusion)
+  6. [Future Ideas for Improvement](#FutureIdeasforImprovement)
+  7. [Data Sources / References](#DataSourcesReferences)
 
 <!-- vscode-markdown-toc-config
 	numbering=true
