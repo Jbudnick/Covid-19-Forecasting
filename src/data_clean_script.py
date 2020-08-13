@@ -87,7 +87,7 @@ def replace_with_moving_averages(df, cols, day_delay, xcol='days_elapsed'):
     return df_ma
 
 
-def load_and_clean_data(use_internet=True, new_cases_per_pop=True):
+def load_and_clean_data(use_internet=True, replace_local = True, new_cases_per_pop=True):
     '''
     Sets up and returns dataframe for analysis
     If new cases per pop is disabled, will use raw number of new cases instead.
@@ -104,10 +104,15 @@ def load_and_clean_data(use_internet=True, new_cases_per_pop=True):
     if use_internet == True:
         covid_raw_df = pd.read_csv(
             'https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv', parse_dates = ['date'])
+        covid_raw_df.to_csv('data/covid_raw')
         mobility_raw_df = pd.read_csv(
             'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv?cachebust=694ae9957380f150', low_memory=False, parse_dates=['date'])
         transp_raw_df = pd.read_csv(
             'https://covid19-static.cdn-apple.com/covid19-mobility-data/2011HotfixDev15/v3/en-us/applemobilitytrends-2020-07-05.csv')
+        if replace_local == True:
+            covid_raw_df.to_csv('data/covid_raw')
+            mobility_raw_df.to_csv('data/mobility_raw')
+            transp_raw_df.to_csv('data/transp_raw')
     else:
         covid_raw_df = pd.read_csv(
             'data/covid-19-data/us-states.csv', parse_dates=['date'])
